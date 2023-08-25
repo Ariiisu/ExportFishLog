@@ -1,0 +1,22 @@
+# Reference: https://build-cpp.github.io/cmkr/cmake-toml
+[project]
+name = "ExportFishLog"
+
+[vcpkg]
+version = "2023.08.09"
+packages = ["cpr", "fmt"]
+
+[find-package]
+fmt = {}
+cpr = {}
+
+[fetch-content.tomlplusplus]
+git = "https://github.com/marzer/tomlplusplus"
+tag = "dbc4bcecf20b7c45fe9d39ca2aa4b28c35e4e83a"
+
+[target.ExportFishLog]
+type = "executable"
+sources = ["src/**.cpp", "src/**.hpp", "src/**.h"]
+compile-features = ["cxx_std_23"]
+link-libraries = ["tomlplusplus::tomlplusplus", "fmt::fmt", "cpr::cpr"]
+msvc.private-compile-options = ["/permissive-", "/w14640", "/EHsc", "/MP"]

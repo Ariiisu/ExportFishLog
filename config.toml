@@ -1,0 +1,17 @@
+# 如果提示找不到地址的话就把对应的signature给改掉
+# 至于怎么找的话,请用ghidra或者ida
+# 或者看GatherBuddy跟aers/FFXivClientStructs
+[signatures]
+fishlog = "48 8D 0D ? ? ? ? 41 0F B6 0C 08 41 B0 ? 84 D1 0F 95 C1"
+spear_fishlog = "48 8D 0D ? ? ? ? 41 0F B6 0C 08 84 D1 0F 95 C3"
+object_table = "48 8D 0D ? ? ? ? E8 ? ? ? ? 44 0F B6 83 ? ? ? ? C6 83"
+
+[network]
+# 是否用代理
+use_proxy = false
+# 代理地址
+proxy_url = "http://127.0.0.1:7890"
+# 下载FishParameter.csv的链接, 国际服可以用xivapi的
+fishlog_url = "https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/FishParameter.csv"
+# 下载SpearfishingItem.csv的链接, 国际服可以用xivapi的
+spear_fishlog_url = "https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/SpearfishingItem.csv"
