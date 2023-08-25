@@ -38,5 +38,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ExportFishLog
-        path: ./build/${{env.BUILD_TYPE}} /*
+        path: ./build/${{env.BUILD_TYPE}}
 
