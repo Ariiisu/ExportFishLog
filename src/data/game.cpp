@@ -21,12 +21,12 @@ void data::game::setup()
     if (!_object_table)
         throw std::exception("找不到object table的地址, 更新下signature");
 
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
+    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
 }
 
 std::vector<std::uint32_t> data::game::get_unlocked_fishes() const
 {
-    fmt::print(fmt::emphasis::bold, "[-] 导出数据中...\n");
+    print(fmt::emphasis::bold, "[-] 导出数据中...\n");
 
     std::vector<std::uint32_t> result{};
     for (auto fishlog_map = network.get_fishlog_map(); const auto& [param_id, item_id] : fishlog_map)
@@ -50,25 +50,28 @@ std::vector<std::uint32_t> data::game::get_unlocked_fishes() const
 bool data::game::is_fish_unlocked(std::uint32_t fish_id) const
 {
     const auto offset = fish_id / 8;
-    const auto bit    = static_cast<std::uint8_t>(fish_id % 8);
+    const auto bit    = static_cast<std::uint8_t>(fish_id) % 8;
 
     const auto addr = _process->read<std::uint8_t>(_fishlog_address + offset);
     if (!addr.has_value())
         throw std::exception("无法获取钓鱼日志. 可能因为没有管理员运行或者杀软误报");
 
-    return (*addr >> bit & 1) == 1;
+    return ((*addr >> bit) & 1) == 1;
 }
 
 bool data::game::is_spear_fish_unlocked(std::uint32_t fish_id) const
 {
+    constexpr int spear_fishlog_offset = 20000;
+
+    fish_id -= spear_fishlog_offset;
     const auto offset = fish_id / 8;
-    const auto bit    = static_cast<std::uint8_t>(fish_id % 8);
+    const auto bit    = static_cast<std::uint8_t>(fish_id) % 8;
 
     const auto addr = _process->read<std::uint8_t>(_spear_fishlog_address + offset);
     if (!addr.has_value())
         throw std::exception("无法获取刺鱼日志. 可能因为没有管理员运行或者杀软误报");
 
-    return (*addr >> bit & 1) == 1;
+    return ((*addr >> bit) & 1) == 1;
 }
 
 bool data::game::is_valid() const

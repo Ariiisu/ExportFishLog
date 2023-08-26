@@ -8,24 +8,24 @@ namespace data
     {
         struct signatures
         {
-            std::string fishlog {};
-            std::string spear_fishlog {};
-            std::string object_table {};
+            std::string fishlog{};
+            std::string spear_fishlog{};
+            std::string object_table{};
         };
 
         struct network
         {
-            bool use_proxy {};
-            std::string proxy_url {};
-            std::string fishlog_url {};
-            std::string spear_fishlog_url {};
+            bool use_proxy{};
+            std::string proxy_url{};
+            std::string fishlog_url{};
+            std::string spear_fishlog_url{};
         };
 
         void setup();
 
     private:
-        signatures _signatures {};
-        network _network {};
+        signatures _signatures{};
+        network _network{};
 
     public:
         signatures signatures()

@@ -1,32 +1,14 @@
 #include "network.h"
 #include "config.h"
 
-#include <fmt/format.h>
-
 #include "csv.hpp"
 
+#include <fmt/format.h>
 #include <fmt/color.h>
-
-struct spearfishing_item
-{
-    std::uint32_t id{}; // 0
-    std::string description{}; // 1
-    std::uint32_t item_id{}; // 2
-    std::int32_t _gathering_item_level{}; // 3
-    bool unkn{};                          // 4
-    std::int32_t _fishing_record_type{};  // 5
-    std::int32_t _territory_type{};       // 6
-    std::uint16_t Unknown6{};             // 7
-    bool _is_visible{};                   // 8
-    auto tied()
-    {
-        return std::tie(id, description, item_id, _gathering_item_level, unkn, _fishing_record_type, _territory_type, Unknown6, _is_visible);
-    }
-};
 
 void data::network::setup()
 {
-    fmt::print(fmt::emphasis::bold, "[-] 开始下载 FishParameter.csv 和 SpearfishingItem.csv\n");
+    print(fmt::emphasis::bold, "[-] 开始下载 FishParameter.csv 和 SpearfishingItem.csv\n");
 
     auto [use_proxy, proxy_url, fishlog_url, spear_fishlog_url] = config.network();
     if (use_proxy)
@@ -51,7 +33,7 @@ void data::network::setup()
                                       {
                                           return a == '\r' && b == '\n';
                                       }).begin(),
-                             str.end());
+                  str.end());
         file << str << std::endl;
         file.close();
 
@@ -69,7 +51,7 @@ void data::network::setup()
             if (item == 0)
                 continue;
 
-            const auto id   = row["#"].get<std::uint32_t>();
+            const auto id    = row["#"].get<std::uint32_t>();
             _fishlog_map[id] = item;
         }
     }
@@ -91,10 +73,10 @@ void data::network::setup()
                                       {
                                           return a == '\r' && b == '\n';
                                       })
-                    .begin(),
+                  .begin(),
                   str.end());
         file << str << std::endl;
-        
+
         file.close();
         csv::CSVFormat format;
         format.header_row(1);
@@ -103,14 +85,14 @@ void data::network::setup()
             if (!row["#"].is_num())
                 continue;
 
-            const auto item  = row["Item"].get<std::uint32_t>();
+            const auto item = row["Item"].get<std::uint32_t>();
             if (item == 0)
                 continue;
 
             const auto id    = row["#"].get<std::uint32_t>();
-            _fishlog_map[id] = item;
+            _spear_fishlog_map[id] = item;
         }
     }
 
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已保存 FishParameter.csv 和 SpearfishingItem.csv\n");
+    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已保存 FishParameter.csv 和 SpearfishingItem.csv\n");
 }

@@ -25,5 +25,5 @@ namespace data
         std::unordered_map<std::uint32_t, std::uint32_t> _spear_fishlog_map;
     };
 
-    inline network network {};
+    inline network network{};
 }

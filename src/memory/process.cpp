@@ -32,7 +32,7 @@ void mem::process::look_for_proess()
             _pid    = static_cast<std::uint32_t>(entry.th32ProcessID);
             _handle = handle;
             setup_base_address();
-            fmt::print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已找到 ffxiv_dx11.exe.\n");
+            print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已找到 ffxiv_dx11.exe.\n");
             CloseHandle(snapshot);
             return;
         }
