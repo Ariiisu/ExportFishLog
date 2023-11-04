@@ -12,6 +12,6 @@ use_proxy = false
 # 代理地址
 proxy_url = "http://127.0.0.1:7890"
 # 下载FishParameter.csv的链接, 国际服可以用xivapi的
-fishlog_url = "https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/FishParameter.csv"
+fishlog_url = "https://ghproxy.com/https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/FishParameter.csv"
 # 下载SpearfishingItem.csv的链接, 国际服可以用xivapi的
-spear_fishlog_url = "https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/SpearfishingItem.csv"
+spear_fishlog_url = "https://ghproxy.com/https://raw.githubusercontent.com/thewakingsands/ffxiv-datamining-cn/master/SpearfishingItem.csv"
