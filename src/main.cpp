@@ -2,15 +2,29 @@
 #include "memory/process.h"
 #include "data/game.h"
 #include "data/network.h"
+#include "data/json.hpp"
 
+#include <iostream>
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <magic_enum.hpp>
+
+void set_utf8_output()
+{
+    // https://stackoverflow.com/a/45622802
+    // Set console code page to UTF-8 so console known how to interpret string data
+    SetConsoleOutputCP(CP_UTF8);
+
+    // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
+    setvbuf(stdout, nullptr, _IOFBF, 1000);
+    setvbuf(stderr, nullptr, _IOFBF, 1000);
+}
 
 void enable_color()
 {
     // enable color support
     const auto std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    // its ok if teh handle is valid
+    // its ok if the handle is valid
     if (std_handle == INVALID_HANDLE_VALUE)
         return;
 
@@ -26,21 +40,51 @@ void enable_color()
     SetConsoleMode(std_handle, mode);
 }
 
+bool parse_input(pastry_fish::Main& pastry_fish_struct)
+{
+    fmt::println("[-] 请输入从鱼糕上本站导出的数据");
+    std::string input;
+    std::cin >> input;
+    const auto parse_error = glz::read_json(pastry_fish_struct, input);
+    if (!parse_error)
+        return true;
+
+    fmt::print(stdout,
+               fmt::emphasis::bold | fg(fmt::color::red),
+               "[x] 在解析鱼糕导出的数据时出错. 原因: {} / loc: {}. 尝试读取文件 \"pastry_fish_data.json\" 进行解析\n",
+               magic_enum::enum_name(parse_error.ec),
+               parse_error.location);
+
+    if (const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{}))
+    {
+        fmt::print(stdout,
+                   fmt::emphasis::bold | fg(fmt::color::red),
+                   "[x] 在读取文件时出错. 原因: {}. loc:{}",
+                   magic_enum::enum_name(read_error.ec),
+                   read_error.location);
+        return false;
+    }
+    return true;
+}
+
 int main()
 {
-    {
-        // https://stackoverflow.com/a/45622802
-        // Set console code page to UTF-8 so console known how to interpret string data
-        SetConsoleOutputCP(CP_UTF8);
-
-        // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
-        setvbuf(stdout, nullptr, _IOFBF, 1000);
-        setvbuf(stderr, nullptr, _IOFBF, 1000);
-    }
+    set_utf8_output();
     enable_color();
+
+    std::thread(
+    []
+    {
+        while (true)
+        {
+            std::fflush(stdout);
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+    }).detach();
 
     try
     {
+        std::once_flag flag;
         data::config.setup();
         data::network.setup();
 
@@ -49,38 +93,38 @@ int main()
         data::game data(process);
         data.setup();
 
-        std::once_flag flag;
+        pastry_fish::Main pastry_fish_struct;
+        if (!parse_input(pastry_fish_struct))
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+            return 1;
+        }
 
         while (!data.is_valid())
         {
             std::call_once(flag,
                            []
                            {
-                               print(fmt::emphasis::bold | fg(fmt::color::red), "检测不到本地玩家...数据将会在检测到后导出");
+                               print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 检测不到本地玩家,数据将会在检测到后导出\n");
                            });
 
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
 
-        std::string id_string;
-        for (std::vector<std::uint32_t> unlocked_fishes = data.get_unlocked_fishes(); auto&& item_id : unlocked_fishes)
+        pastry_fish_struct.completed = data.get_unlocked_fishes();
+        if (glz::write_file_json(pastry_fish_struct, "./result.json", std::string{}))
         {
-            id_string += fmt::format("{},", item_id);
+            throw std::runtime_error(fmt::format("写入文件时出错"));
         }
-        std::ofstream file("result.json", std::ios::trunc);
-        file
-            << R"({"filters":{"completion":"uncaught","patch":[2,2.1,2.2,2.3,2.4,2.5,3,3.1,3.2,3.3,3.4,3.5,4,4.1,4.2,4.3,4.4,4.5,5,5.1,5.2,5.3,5.4,5.5,6]},"pinned":[],"upcomingWindowFormat":"fromPrevClose","sortingType":"windowPeriods","theme":"dark",)"
-            + fmt::format("\"completed\":[{}]", id_string.substr(0, id_string.size() - 1)) + "}"
-            << std::endl;
 
-        print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 结果已保存到 \"result.json\", 5秒后退出程序.");
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 结果已保存到 \"result.json\", 5秒后退出程序.");
 
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
     catch (std::exception& ex)
     {
-        print(fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n", ex.what());
-        system("pause");
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n", ex.what());
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 
     return 0;

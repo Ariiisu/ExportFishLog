@@ -22,7 +22,7 @@ void data::network::setup()
         auto response = _session.Get();
         if (response.error.code != cpr::ErrorCode::OK)
         {
-            throw std::exception(fmt::format("下载 FishParameter.csv 失败. {}", response.error.message).data());
+            throw std::exception(fmt::format("下载 FishParameter.csv 失败. {}. 请检查 config.toml 中的代理设置或链接是正确的", response.error.message).data());
         }
 
         std::ofstream file("FishParameter.csv", std::ios::in | std::ios::trunc);
@@ -62,7 +62,7 @@ void data::network::setup()
         auto response = _session.Get();
         if (response.error.code != cpr::ErrorCode::OK)
         {
-            throw std::exception(fmt::format("下载 SpearfishingItem.csv 失败. {}", response.error.message).data());
+            throw std::exception(fmt::format("下载 SpearfishingItem.csv 失败. 原因: {}. 请检查 config.toml 中的代理设置或链接是正确的", response.error.message).data());
         }
 
         std::ofstream file("SpearfishingItem.csv", std::ios::trunc);
@@ -89,10 +89,10 @@ void data::network::setup()
             if (item == 0)
                 continue;
 
-            const auto id    = row["#"].get<std::uint32_t>();
+            const auto id          = row["#"].get<std::uint32_t>();
             _spear_fishlog_map[id] = item;
         }
     }
 
-    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已保存 FishParameter.csv 和 SpearfishingItem.csv\n");
+    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已保存 FishParameter.csv 和 SpearfishingItem.csv\n");
 }

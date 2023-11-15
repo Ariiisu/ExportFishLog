@@ -21,12 +21,12 @@ void data::game::setup()
     if (!_object_table)
         throw std::exception("找不到object table的地址, 更新下signature");
 
-    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
+    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
 }
 
 std::vector<std::uint32_t> data::game::get_unlocked_fishes() const
 {
-    print(fmt::emphasis::bold, "[-] 导出数据中...\n");
+    print(stdout, fmt::emphasis::bold, "[-] 导出数据中...\n");
 
     std::vector<std::uint32_t> result{};
     for (auto fishlog_map = network.get_fishlog_map(); const auto& [param_id, item_id] : fishlog_map)

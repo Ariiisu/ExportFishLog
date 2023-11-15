@@ -14,9 +14,18 @@ cpr = {}
 git = "https://github.com/marzer/tomlplusplus"
 tag = "dbc4bcecf20b7c45fe9d39ca2aa4b28c35e4e83a"
 
+[fetch-content.glaze]
+git = "https://github.com/stephenberry/glaze"
+tag = "de46592b9f1d0aa903cfe23cb95512caecc14109"
+
+[fetch-content.magic_enum]
+git = "https://github.com/Neargye/magic_enum"
+tag = "3437129f30c926e740ae5943cef27cd0b836c4be"
+
 [target.ExportFishLog]
 type = "executable"
 sources = ["src/**.cpp", "src/**.hpp", "src/**.h"]
 compile-features = ["cxx_std_23"]
-link-libraries = ["tomlplusplus::tomlplusplus", "fmt::fmt", "cpr::cpr"]
+windows.compile-definitions = ["NOMINMAX"]
+link-libraries = ["tomlplusplus::tomlplusplus", "fmt::fmt", "cpr::cpr", "glaze::glaze", "magic_enum::magic_enum"]
 msvc.private-compile-options = ["/permissive-", "/w14640", "/EHsc", "/MP"]

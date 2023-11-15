@@ -52,6 +52,24 @@ FetchContent_Declare(tomlplusplus SYSTEM
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
+message(STATUS "Fetching glaze (de46592b9f1d0aa903cfe23cb95512caecc14109)...")
+FetchContent_Declare(glaze SYSTEM
+	GIT_REPOSITORY
+		"https://github.com/stephenberry/glaze"
+	GIT_TAG
+		de46592b9f1d0aa903cfe23cb95512caecc14109
+)
+FetchContent_MakeAvailable(glaze)
+
+message(STATUS "Fetching magic_enum (3437129f30c926e740ae5943cef27cd0b836c4be)...")
+FetchContent_Declare(magic_enum SYSTEM
+	GIT_REPOSITORY
+		"https://github.com/Neargye/magic_enum"
+	GIT_TAG
+		3437129f30c926e740ae5943cef27cd0b836c4be
+)
+FetchContent_MakeAvailable(magic_enum)
+
 # Packages
 find_package(fmt REQUIRED)
 
@@ -66,6 +84,7 @@ set(ExportFishLog_SOURCES
 	"src/memory/pattern.cpp"
 	"src/memory/process.cpp"
 	"src/data/csv.hpp"
+	"src/data/json.hpp"
 	"src/data/config.h"
 	"src/data/game.h"
 	"src/data/network.h"
@@ -78,6 +97,12 @@ add_executable(ExportFishLog)
 
 target_sources(ExportFishLog PRIVATE ${ExportFishLog_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ExportFishLog_SOURCES})
+
+if(WIN32) # windows
+	target_compile_definitions(ExportFishLog PRIVATE
+		NOMINMAX
+	)
+endif()
 
 target_compile_features(ExportFishLog PRIVATE
 	cxx_std_23
@@ -96,6 +121,8 @@ target_link_libraries(ExportFishLog PRIVATE
 	tomlplusplus::tomlplusplus
 	fmt::fmt
 	cpr::cpr
+	glaze::glaze
+	magic_enum::magic_enum
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
