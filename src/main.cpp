@@ -1,7 +1,6 @@
 #include "data/config.h"
 #include "memory/process.h"
 #include "data/game.h"
-#include "data/network.h"
 #include "data/json.hpp"
 
 #include <iostream>
@@ -42,7 +41,7 @@ void enable_color()
 
 bool parse_input(pastry_fish::Main& pastry_fish_struct)
 {
-    fmt::println("[-] 请输入从鱼糕上本站导出的数据");
+    fmt::println("[-] 请输入从鱼糕上导出的数据 (可以从鱼糕页面左下角的 导入/导出 -> 点 \"鱼糕本站导入导出\" 里的导出按钮 -> 复制到剪贴板 获取内容)");
     std::string input;
     std::cin >> input;
     const auto parse_error = glz::read_json(pastry_fish_struct, input);
@@ -78,7 +77,7 @@ int main()
         while (true)
         {
             std::fflush(stdout);
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }).detach();
 
@@ -86,12 +85,12 @@ int main()
     {
         std::once_flag flag;
         data::config.setup();
-        data::network.setup();
 
         const auto process = std::make_shared<mem::process>("ffxiv_dx11.exe");
 
         data::game data(process);
-        data.setup();
+        data.setup_address();
+        data.setup_excel_sheet();
 
         pastry_fish::Main pastry_fish_struct;
         if (!parse_input(pastry_fish_struct))
@@ -100,6 +99,7 @@ int main()
             return 1;
         }
 
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功");
         while (!data.is_valid())
         {
             std::call_once(flag,

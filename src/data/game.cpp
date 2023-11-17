@@ -1,11 +1,13 @@
 #include "game.h"
 #include "../memory/pattern.h"
 #include "config.h"
-#include "network.h"
+
+#include <xivres/installation.h>
+#include <xivres/excel.h>
 
 #include <fmt/color.h>
 
-void data::game::setup()
+void data::game::setup_address()
 {
     const auto [fishlog_sig, spear_fishlog_sig, object_table_sig] = config.signatures();
 
@@ -24,12 +26,52 @@ void data::game::setup()
     print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
 }
 
+void data::game::setup_excel_sheet()
+{
+    const xivres::installation game_reader(_process->get_process_path());
+
+    const auto fish_param_sheet = game_reader.get_excel("FishParameter");
+    for (std::size_t i = 0; i < fish_param_sheet.get_exh_reader().get_pages().size(); i++)
+    {
+        for (const auto& row : fish_param_sheet.get_exd_reader(i))
+        {
+            for (const auto& subrow : row)
+            {
+                if (const auto is_in_log = subrow[8].boolean; !is_in_log)
+                    continue;
+
+                if (const auto description = subrow[0].String.repr(); description.empty())
+                    continue;
+
+                _fishlog_map[row.row_id()] = subrow[1].int32; /*item id*/
+            }
+        }
+    }
+
+    const auto spear_fish_sheet = game_reader.get_excel("SpearfishingItem");
+    for (std::size_t i = 0; i < spear_fish_sheet.get_exh_reader().get_pages().size(); i++)
+    {
+        for (const auto& row : spear_fish_sheet.get_exd_reader(i))
+        {
+            for (const auto& subrow : row)
+            {
+                if (const auto description = subrow[0].String.repr(); description.empty())
+                    continue;
+
+                _spear_fishlog_map[row.row_id()] = subrow[1].int32; /*item id*/
+            }
+        }
+    }
+
+    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已获取所需csv文件的内容\n");
+}
+
 std::vector<std::uint32_t> data::game::get_unlocked_fishes() const
 {
     print(stdout, fmt::emphasis::bold, "[-] 导出数据中...\n");
 
     std::vector<std::uint32_t> result{};
-    for (auto fishlog_map = network.get_fishlog_map(); const auto& [param_id, item_id] : fishlog_map)
+    for (const auto& [param_id, item_id] : _fishlog_map)
     {
         if (!is_fish_unlocked(param_id))
             continue;
@@ -37,7 +79,7 @@ std::vector<std::uint32_t> data::game::get_unlocked_fishes() const
         result.push_back(item_id);
     }
 
-    for (auto spear_fishlog_map = network.get_spear_fishlog_map(); const auto& [param_id, item_id] : spear_fishlog_map)
+    for (const auto& [param_id, item_id] : _spear_fishlog_map)
     {
         if (!is_spear_fish_unlocked(param_id))
             continue;

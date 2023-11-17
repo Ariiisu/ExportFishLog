@@ -2,7 +2,6 @@
 #include <tlhelp32.h>
 #include <Windows.h>
 #include <Psapi.h>
-#include <fmt/core.h>
 #include <fmt/color.h>
 
 mem::process::process(std::string_view process_name)
@@ -53,14 +52,18 @@ void mem::process::setup_base_address()
 
     // 第一个就是exe本体
     auto mod = lph_module[0];
-
-    if (char mod_name[MAX_PATH]; !GetModuleFileNameEx(_handle, mod, mod_name, sizeof(mod_name) / sizeof(TCHAR)))
+    _process_path.resize(MAX_PATH);
+    
+    if (!GetModuleFileNameEx(_handle, mod, _process_path.data(), MAX_PATH))
         throw std::exception("无法获取ffxiv_dx11.exe的module名, 可能因为没有用管理员运行或者杀毒软件误报");
 
     MODULEINFO module_info{};
     if (!GetModuleInformation(_handle, mod, &module_info, lpcb_needed))
         throw std::exception("无法获取ffxiv_dx11.exe的module信息, 可能因为没有用管理员运行或者杀毒软件误报");
 
+    _process_path = _process_path.substr(0, _process_path.find_last_of('\\'));
+
+    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] process_path: {}\n", _process_path);
     _base_address   = reinterpret_cast<std::uintptr_t>(mod);
     const auto size = module_info.SizeOfImage;
 

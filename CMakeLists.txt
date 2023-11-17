@@ -24,7 +24,10 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	configure_file(cmake.toml cmake.toml COPYONLY)
 endif()
 
-project(ExportFishLog)
+project(ExportFishLog
+	VERSION
+		1.3
+)
 
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
 	include(FetchContent)
@@ -73,21 +76,144 @@ FetchContent_MakeAvailable(magic_enum)
 # Packages
 find_package(fmt REQUIRED)
 
-find_package(cpr REQUIRED)
+find_package(zlib REQUIRED)
+
+find_package(unofficial-minizip REQUIRED)
+
+find_package(nlohmann_json REQUIRED)
+
+# Target: xivres
+set(CMKR_TARGET xivres)
+find_path(SRELL_INCLUDE_DIRS "srell.hpp")
+
+set(xivres_SOURCES
+	"xivres/impl/TinySha1.cpp"
+	"xivres/impl/common.cpp"
+	"xivres/impl/excel.cpp"
+	"xivres/impl/excel.type2gen.cpp"
+	"xivres/impl/fontdata.cpp"
+	"xivres/impl/installation.cpp"
+	"xivres/impl/packed_stream.cpp"
+	"xivres/impl/packed_stream.hotswap.cpp"
+	"xivres/impl/packed_stream.model.cpp"
+	"xivres/impl/packed_stream.placeholder.cpp"
+	"xivres/impl/packed_stream.standard.cpp"
+	"xivres/impl/packed_stream.texture.cpp"
+	"xivres/impl/path_spec.cpp"
+	"xivres/impl/sound.cpp"
+	"xivres/impl/sqpack.cpp"
+	"xivres/impl/sqpack.generator.cpp"
+	"xivres/impl/sqpack.reader.cpp"
+	"xivres/impl/stream.cpp"
+	"xivres/impl/textools.cpp"
+	"xivres/impl/texture.cpp"
+	"xivres/impl/texture.mipmap_stream.cpp"
+	"xivres/impl/texture.preview.cpp"
+	"xivres/impl/texture.stream.cpp"
+	"xivres/impl/unpacked_stream.cpp"
+	"xivres/impl/unpacked_stream.model.cpp"
+	"xivres/impl/unpacked_stream.placeholder.cpp"
+	"xivres/impl/unpacked_stream.standard.cpp"
+	"xivres/impl/unpacked_stream.texture.cpp"
+	"xivres/impl/util.bitmap_copy.cpp"
+	"xivres/impl/util.dxt.cpp"
+	"xivres/impl/util.thread_pool.cpp"
+	"xivres/impl/util.unicode.cpp"
+	"xivres/impl/util.zlib_wrapper.cpp"
+	"xivres/impl/xivstring.cpp"
+	"xivres/include/xivres/common.h"
+	"xivres/include/xivres/equipment_and_gimmick_parameter.h"
+	"xivres/include/xivres/equipment_deformer_parameter.h"
+	"xivres/include/xivres/ex_skeleton_table.h"
+	"xivres/include/xivres/excel.h"
+	"xivres/include/xivres/excel.type2gen.h"
+	"xivres/include/xivres/fontdata.h"
+	"xivres/include/xivres/image_change_data.h"
+	"xivres/include/xivres/installation.h"
+	"xivres/include/xivres/model.h"
+	"xivres/include/xivres/packed_stream.h"
+	"xivres/include/xivres/packed_stream.hotswap.h"
+	"xivres/include/xivres/packed_stream.model.h"
+	"xivres/include/xivres/packed_stream.placeholder.h"
+	"xivres/include/xivres/packed_stream.standard.h"
+	"xivres/include/xivres/packed_stream.texture.h"
+	"xivres/include/xivres/path_spec.h"
+	"xivres/include/xivres/sound.h"
+	"xivres/include/xivres/sqpack.generator.h"
+	"xivres/include/xivres/sqpack.h"
+	"xivres/include/xivres/sqpack.reader.h"
+	"xivres/include/xivres/stream.h"
+	"xivres/include/xivres/textools.h"
+	"xivres/include/xivres/texture.h"
+	"xivres/include/xivres/texture.mipmap_stream.h"
+	"xivres/include/xivres/texture.preview.h"
+	"xivres/include/xivres/texture.stream.h"
+	"xivres/include/xivres/unpacked_stream.h"
+	"xivres/include/xivres/unpacked_stream.model.h"
+	"xivres/include/xivres/unpacked_stream.placeholder.h"
+	"xivres/include/xivres/unpacked_stream.standard.h"
+	"xivres/include/xivres/unpacked_stream.texture.h"
+	"xivres/include/xivres/util.bitmap_copy.h"
+	"xivres/include/xivres/util.byte_order.h"
+	"xivres/include/xivres/util.dxt.h"
+	"xivres/include/xivres/util.h"
+	"xivres/include/xivres/util.listener_manager.h"
+	"xivres/include/xivres/util.on_dtor.h"
+	"xivres/include/xivres/util.pixel_formats.h"
+	"xivres/include/xivres/util.sha1.h"
+	"xivres/include/xivres/util.span_cast.h"
+	"xivres/include/xivres/util.thread_pool.h"
+	"xivres/include/xivres/util.unicode.h"
+	"xivres/include/xivres/util.zlib_wrapper.h"
+	"xivres/include/xivres/xivstring.h"
+	cmake.toml
+)
+
+add_library(xivres STATIC)
+
+target_sources(xivres PRIVATE ${xivres_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${xivres_SOURCES})
+
+add_library(xivres::xivres ALIAS xivres)
+if(WIN32) # windows
+	target_compile_definitions(xivres PUBLIC
+		NOMINMAX
+	)
+endif()
+
+target_compile_features(xivres PUBLIC
+	cxx_std_23
+)
+
+if(MSVC) # msvc
+	target_compile_options(xivres PRIVATE
+		"/permissive-"
+		"/w14640"
+		"/EHsc"
+		"/MP"
+	)
+endif()
+
+target_include_directories(xivres PUBLIC
+	${SRELL_INCLUDE_DIRS}
+)
+
+target_link_libraries(xivres PUBLIC
+	unofficial::minizip::minizip
+	ZLIB::ZLIB
+	nlohmann_json::nlohmann_json
+)
 
 # Target: ExportFishLog
 set(ExportFishLog_SOURCES
 	"src/data/config.cpp"
 	"src/data/game.cpp"
-	"src/data/network.cpp"
 	"src/main.cpp"
 	"src/memory/pattern.cpp"
 	"src/memory/process.cpp"
-	"src/data/csv.hpp"
 	"src/data/json.hpp"
 	"src/data/config.h"
 	"src/data/game.h"
-	"src/data/network.h"
 	"src/memory/pattern.h"
 	"src/memory/process.h"
 	cmake.toml
@@ -117,12 +243,16 @@ if(MSVC) # msvc
 	)
 endif()
 
+target_include_directories(ExportFishLog PRIVATE
+	"xivres/include/"
+)
+
 target_link_libraries(ExportFishLog PRIVATE
 	tomlplusplus::tomlplusplus
 	fmt::fmt
-	cpr::cpr
 	glaze::glaze
 	magic_enum::magic_enum
+	xivres::xivres
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
