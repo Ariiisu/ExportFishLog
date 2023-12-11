@@ -26,7 +26,7 @@ endif()
 
 project(ExportFishLog
 	VERSION
-		1.3
+		1.4
 )
 
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)

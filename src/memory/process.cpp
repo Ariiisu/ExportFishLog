@@ -63,7 +63,6 @@ void mem::process::setup_base_address()
 
     _process_path = _process_path.substr(0, _process_path.find_last_of('\\'));
 
-    print(fmt::emphasis::bold | fg(fmt::color::light_green), "[+] process_path: {}\n", _process_path);
     _base_address   = reinterpret_cast<std::uintptr_t>(mod);
     const auto size = module_info.SizeOfImage;
 

@@ -41,6 +41,15 @@ void enable_color()
 
 bool parse_input(pastry_fish::Main& pastry_fish_struct)
 {
+    if (const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{}); !read_error)
+    {
+        return true;
+    }
+    else
+    {
+        fmt::print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 在读取文件 \"pastry_fish_data.json\"时出错. 原因: {}. loc:{}.\n", magic_enum::enum_name(read_error.ec), read_error.location);
+    }
+
     fmt::println("[-] 请输入从鱼糕上导出的数据 (可以从鱼糕页面左下角的 导入/导出 -> 点 \"鱼糕本站导入导出\" 里的导出按钮 -> 复制到剪贴板 获取内容)");
     std::string input;
     std::cin >> input;
@@ -48,22 +57,7 @@ bool parse_input(pastry_fish::Main& pastry_fish_struct)
     if (!parse_error)
         return true;
 
-    fmt::print(stdout,
-               fmt::emphasis::bold | fg(fmt::color::red),
-               "[x] 在解析鱼糕导出的数据时出错. 原因: {} / loc: {}. 尝试读取文件 \"pastry_fish_data.json\" 进行解析\n",
-               magic_enum::enum_name(parse_error.ec),
-               parse_error.location);
-
-    if (const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{}))
-    {
-        fmt::print(stdout,
-                   fmt::emphasis::bold | fg(fmt::color::red),
-                   "[x] 在读取文件时出错. 原因: {}. loc:{}",
-                   magic_enum::enum_name(read_error.ec),
-                   read_error.location);
-        return false;
-    }
-    return true;
+    throw std::runtime_error(fmt::format("在解析鱼糕导出的数据时出错. 原因: {} / loc: {}.", magic_enum::enum_name(parse_error.ec), parse_error.location));
 }
 
 int main()
@@ -99,7 +93,7 @@ int main()
             return 1;
         }
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功");
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功\n");
         while (!data.is_valid())
         {
             std::call_once(flag,
@@ -117,14 +111,14 @@ int main()
             throw std::runtime_error(fmt::format("写入文件时出错"));
         }
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 结果已保存到 \"result.json\", 5秒后退出程序.");
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 结果已保存到 \"result.json\", 5秒后退出程序.\n");
 
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
     catch (std::exception& ex)
     {
         print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n", ex.what());
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 
     return 0;
