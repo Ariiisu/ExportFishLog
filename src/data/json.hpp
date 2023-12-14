@@ -145,39 +145,39 @@ namespace pastry_fish
 
     struct Main
     {
-        std::string websiteVersion;
-        std::string migrationVersion;
+        std::optional<std::string> websiteVersion;
+        std::optional<std::string> migrationVersion;
         std::vector<std::uint32_t> completed;
-        std::vector<std::uint32_t> pinned;
-        std::vector<std::uint32_t> toBeNotified;
-        std::vector<std::uint32_t> toBeNotifiedLocked;
-        std::vector<std::uint32_t> toBeNotifiedIKDRoutes;
+        std::optional<std::vector<std::uint32_t>> pinned;
+        std::optional<std::vector<std::uint32_t>> toBeNotified;
+        std::optional<std::vector<std::uint32_t>> toBeNotifiedLocked;
+        std::optional<std::vector<std::uint32_t>> toBeNotifiedIKDRoutes;
 
-        Filters filters;
-        BaitFilter baitFilter;
-        ListSetting listSetting;
+        std::optional<Filters> filters;
+        std::optional<BaitFilter> baitFilter;
+        std::optional<ListSetting> listSetting;
 
-        bool showFilter;
-        bool showBanner;
-        int opacity;
-        int zoomFactor;
-        int rightPanePercentage;
-        double rightPanePercentageV2;
+        std::optional<bool> showFilter;
+        std::optional<bool> showBanner;
+        std::optional<int> opacity;
+        std::optional<int> zoomFactor;
+        std::optional<int> rightPanePercentage;
+        std::optional<double> rightPanePercentageV2;
 
-        Notification notification;
-        DetailArrangement detailArrangement;
-        Theme theme;
-        Event event;
-        OceanFishing oceanFishing;
-        Link link;
-        Bait bait;
+        std::optional<Notification> notification;
+        std::optional<DetailArrangement> detailArrangement;
+        std::optional<Theme> theme;
+        std::optional<Event> event;
+        std::optional<OceanFishing> oceanFishing;
+        std::optional<Link> link;
+        std::optional<Bait> bait;
 
-        bool showChromeBugDialog;
-        bool showCompetitionDialogV2;
-        bool fishEyesUsed;
-        std::unordered_map<std::string, std::string> mainWindow;
-        bool isRoseMode;
-        bool readChartTip;
+        std::optional<bool> showChromeBugDialog;
+        std::optional<bool> showCompetitionDialogV2;
+        std::optional<bool> fishEyesUsed;
+        std::optional<std::unordered_map<std::string, std::string>> mainWindow;
+        std::optional<bool> isRoseMode;
+        std::optional<bool> readChartTip;
 
         GLZ_LOCAL_META(Main,
                        websiteVersion,

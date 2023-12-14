@@ -55,12 +55,12 @@ FetchContent_Declare(tomlplusplus SYSTEM
 )
 FetchContent_MakeAvailable(tomlplusplus)
 
-message(STATUS "Fetching glaze (de46592b9f1d0aa903cfe23cb95512caecc14109)...")
+message(STATUS "Fetching glaze (e7d2da91e38182885d602d792d6b1e24f24185a9)...")
 FetchContent_Declare(glaze SYSTEM
 	GIT_REPOSITORY
 		"https://github.com/stephenberry/glaze"
 	GIT_TAG
-		de46592b9f1d0aa903cfe23cb95512caecc14109
+		e7d2da91e38182885d602d792d6b1e24f24185a9
 )
 FetchContent_MakeAvailable(glaze)
 

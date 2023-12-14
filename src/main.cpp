@@ -39,11 +39,12 @@ void enable_color()
     SetConsoleMode(std_handle, mode);
 }
 
-bool parse_input(pastry_fish::Main& pastry_fish_struct)
+void parse_input(pastry_fish::Main& pastry_fish_struct)
 {
     if (const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{}); !read_error)
     {
-        return true;
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功\n");
+        return;
     }
     else
     {
@@ -55,9 +56,16 @@ bool parse_input(pastry_fish::Main& pastry_fish_struct)
     std::cin >> input;
     const auto parse_error = glz::read_json(pastry_fish_struct, input);
     if (!parse_error)
-        return true;
+    {
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功\n");
+        return;
+    }
 
-    throw std::runtime_error(fmt::format("在解析鱼糕导出的数据时出错. 原因: {} / loc: {}.", magic_enum::enum_name(parse_error.ec), parse_error.location));
+    fmt::print(stdout,
+               fmt::emphasis::bold | fg(fmt::color::red),
+               "[x] 在解析鱼糕导出的数据时出错. 原因: {} / loc: {}. 生成出来的内容只会有钓过的鱼\n",
+               magic_enum::enum_name(parse_error.ec),
+               parse_error.location);
 }
 
 int main()
@@ -87,13 +95,8 @@ int main()
         data.setup_excel_sheet();
 
         pastry_fish::Main pastry_fish_struct;
-        if (!parse_input(pastry_fish_struct))
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            return 1;
-        }
+        parse_input(pastry_fish_struct);
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功\n");
         while (!data.is_valid())
         {
             std::call_once(flag,
