@@ -17,7 +17,14 @@ void data::game::setup_address()
 
     _spear_fishlog_address = _process->find_pattern(pattern::make(spear_fishlog_sig), true);
     if (!_spear_fishlog_address)
-        throw std::exception("找不到刺鱼日志的地址, 更新下signature");
+    {
+        print(stdout,
+              fmt::emphasis::bold | fg(fmt::color::yellow),
+              "[!] 刺鱼日志的signature失效,用另外一种方法获取地址.如果两种方法都无效,或得出的结果有异常,请打开 \"config.toml\" 然后更新spear_fishlog的signature\n");
+
+        const auto packed_fishlog_size = _fishlog_map.size() % 8 + _fishlog_map.size() / 8;
+        _spear_fishlog_address         = _fishlog_address + packed_fishlog_size + 8 /*skip 2 uint32_t fields*/ + (_spearfish_notebook_size >> 3);
+    }
 
     _object_table = _process->find_pattern(pattern::make(object_table_sig), true);
     if (!_object_table)
@@ -60,6 +67,15 @@ void data::game::setup_excel_sheet()
 
                 _spear_fishlog_map[row.row_id()] = subrow[1].int32; /*item id*/
             }
+        }
+    }
+
+    const auto spearfishing_notebook = game_reader.get_excel("SpearfishingNotebook");
+    for (std::size_t i = 0; i < spearfishing_notebook.get_exh_reader().get_pages().size(); i++)
+    {
+        for (const auto& _ : spearfishing_notebook.get_exd_reader(i))
+        {
+            _spearfish_notebook_size++;
         }
     }
 

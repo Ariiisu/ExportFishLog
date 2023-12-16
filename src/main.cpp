@@ -91,8 +91,8 @@ int main()
         const auto process = std::make_shared<mem::process>("ffxiv_dx11.exe");
 
         data::game data(process);
-        data.setup_address();
         data.setup_excel_sheet();
+        data.setup_address();
 
         pastry_fish::Main pastry_fish_struct;
         parse_input(pastry_fish_struct);

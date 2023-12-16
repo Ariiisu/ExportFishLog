@@ -105,5 +105,6 @@ namespace pattern
     }
 
     std::uintptr_t find_std(std::uint8_t* data, std::size_t size, std::span<impl::hex_data> pattern) noexcept;
+    std::vector<std::uintptr_t> find_multi_std(std::uint8_t* data, std::size_t size, std::span<impl::hex_data> pattern) noexcept;
     using make = impl::make<' ', '?'>;
 }

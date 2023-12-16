@@ -29,7 +29,8 @@ namespace data
         std::uintptr_t _object_table{};
         std::shared_ptr<mem::process> _process;
 
-        std::unordered_map<std::uint32_t, std::uint32_t> _fishlog_map;
-        std::unordered_map<std::uint32_t, std::uint32_t> _spear_fishlog_map;
+        std::unordered_map<std::uint32_t, std::uint32_t> _fishlog_map {};
+        std::unordered_map<std::uint32_t, std::uint32_t> _spear_fishlog_map {};
+        std::size_t _spearfish_notebook_size {};
     };
 }

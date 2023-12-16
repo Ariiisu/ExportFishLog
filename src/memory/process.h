@@ -61,6 +61,9 @@ namespace mem
         std::uintptr_t find_pattern(pattern::impl::make<> pattern, bool rel = false, std::uint8_t rel_offset = 3);
         std::uintptr_t find_pattern(const std::span<pattern::impl::hex_data>& pattern, bool rel = false, std::uint8_t rel_offset = 3);
 
+        std::vector<std::uintptr_t> find_pattern_multi(pattern::impl::make<> pattern, bool rel = false, std::uint8_t rel_offset = 3);
+        std::vector<std::uintptr_t> find_pattern_multi(const std::span<pattern::impl::hex_data>& pattern, bool rel = false, std::uint8_t rel_offset = 3);
+
         std::string get_process_path()
         {
             return _process_path;

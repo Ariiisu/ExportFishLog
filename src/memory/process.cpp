@@ -53,7 +53,7 @@ void mem::process::setup_base_address()
     // 第一个就是exe本体
     auto mod = lph_module[0];
     _process_path.resize(MAX_PATH);
-    
+
     if (!GetModuleFileNameEx(_handle, mod, _process_path.data(), MAX_PATH))
         throw std::exception("无法获取ffxiv_dx11.exe的module名, 可能因为没有用管理员运行或者杀毒软件误报");
 
@@ -119,6 +119,52 @@ std::uintptr_t mem::process::find_pattern(const std::span<pattern::impl::hex_dat
             throw std::exception("[find_pattern] 读取offset失败, 可能因为没有用管理员运行或者杀毒软件误报");
 
         res = res + rel_offset + sizeof(std::uint32_t) + *offset;
+    }
+
+    return res;
+}
+
+std::vector<std::uintptr_t> mem::process::find_pattern_multi(pattern::impl::make<> pattern, bool rel, std::uint8_t rel_offset)
+{
+    auto res = pattern::find_multi_std(_process_bytes.data(), _process_bytes.size(), pattern.bytes);
+    if (res.empty())
+        return {};
+
+    for (auto& addr : res)
+    {
+        addr += _base_address;
+
+        if (rel)
+        {
+            const auto offset = read<std::uint32_t>(addr + rel_offset);
+            if (!offset.has_value())
+                throw std::exception("[find_pattern] 读取offset失败, 可能因为没有用管理员运行或者杀毒软件误报");
+
+            addr = addr + rel_offset + sizeof(std::uint32_t) + *offset;
+        }
+    }
+
+    return res;
+}
+
+std::vector<std::uintptr_t> mem::process::find_pattern_multi(const std::span<pattern::impl::hex_data>& pattern, bool rel, std::uint8_t rel_offset)
+{
+    auto res = pattern::find_multi_std(_process_bytes.data(), _process_bytes.size(), pattern);
+    if (res.empty())
+        return {};
+
+    for (auto& addr : res)
+    {
+        addr += _base_address;
+
+        if (rel)
+        {
+            const auto offset = read<std::uint32_t>(addr + rel_offset);
+            if (!offset.has_value())
+                throw std::exception("[find_pattern] 读取offset失败, 可能因为没有用管理员运行或者杀毒软件误报");
+
+            addr = addr + rel_offset + sizeof(std::uint32_t) + *offset;
+        }
     }
 
     return res;
