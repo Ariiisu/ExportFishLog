@@ -11,19 +11,19 @@
 void set_utf8_output()
 {
     // https://stackoverflow.com/a/45622802
-    // Set console code page to UTF-8 so console known how to interpret string data
-    SetConsoleOutputCP(CP_UTF8);
+    // https://stackoverflow.com/a/77225440
 
-    // Enable buffering to prevent VS from chopping up UTF-8 byte sequences
-    setvbuf(stdout, nullptr, _IOFBF, 1000);
-    setvbuf(stderr, nullptr, _IOFBF, 1000);
+    // console UTF-8
+    std::setlocale(LC_CTYPE, ".UTF8");
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
 }
 
 void enable_color()
 {
     // enable color support
     const auto std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    // its ok if the handle is valid
+    // its ok if the handle is invalid
     if (std_handle == INVALID_HANDLE_VALUE)
         return;
 
@@ -41,15 +41,17 @@ void enable_color()
 
 void parse_input(pastry_fish::Main& pastry_fish_struct)
 {
-    if (const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{}); !read_error)
+    const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{});
+    if (!read_error)
     {
         print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 解析成功\n");
         return;
     }
-    else
-    {
-        fmt::print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 在读取文件 \"pastry_fish_data.json\"时出错. 原因: {}. loc:{}.\n", magic_enum::enum_name(read_error.ec), read_error.location);
-    }
+    fmt::print(stdout,
+               fmt::emphasis::bold | fg(fmt::color::red),
+               "[x] 在读取文件 \"pastry_fish_data.json\"时出错. 原因: {}. loc:{}.\n",
+               magic_enum::enum_name(read_error.ec),
+               read_error.location);
 
     fmt::println("[-] 请输入从鱼糕上导出的数据 (可以从鱼糕页面左下角的 导入/导出 -> 点 \"鱼糕本站导入导出\" 里的导出按钮 -> 复制到剪贴板 获取内容)");
     std::string input;
