@@ -37,6 +37,9 @@ void data::game::setup_excel_sheet()
 {
     const xivres::installation game_reader(_process->get_process_path());
 
+    std::once_flag flag{};
+    std::size_t inlog_index = 0;
+
     const auto fish_param_sheet = game_reader.get_excel("FishParameter");
     for (std::size_t i = 0; i < fish_param_sheet.get_exh_reader().get_pages().size(); i++)
     {
@@ -44,13 +47,25 @@ void data::game::setup_excel_sheet()
         {
             for (const auto& subrow : row)
             {
-                if (const auto is_in_log = subrow[8].boolean; !is_in_log)
+                std::call_once(flag,
+                               [&]
+                               {
+                                   for (std::size_t j{}; j < subrow.size(); j++)
+                                   {
+                                       if (subrow[j].Type != xivres::excel::cell_type::PackedBool1)
+                                           continue;
+                                       inlog_index = j;
+                                       break;
+                                   }
+                               });
+
+                const auto item_id = subrow[1].int32;
+                const auto in_log  = subrow[inlog_index].boolean;
+
+                if (item_id == 0 || !in_log)
                     continue;
 
-                if (const auto description = subrow[0].String.repr(); description.empty())
-                    continue;
-
-                _fishlog_map[row.row_id()] = subrow[1].int32; /*item id*/
+                _fishlog_map[row.row_id()] = item_id;
             }
         }
     }
@@ -62,10 +77,11 @@ void data::game::setup_excel_sheet()
         {
             for (const auto& subrow : row)
             {
-                if (const auto description = subrow[0].String.repr(); description.empty())
+                const auto item_id = subrow[1].int32;
+                if (item_id == 0)
                     continue;
 
-                _spear_fishlog_map[row.row_id()] = subrow[1].int32; /*item id*/
+                _spear_fishlog_map[row.row_id()] = item_id;
             }
         }
     }
