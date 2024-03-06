@@ -39,6 +39,7 @@ void data::game::setup_excel_sheet()
 
     std::once_flag flag{};
     std::size_t inlog_index = 0;
+    print(stdout, fmt::emphasis::bold, "[-] 正在获取钓鱼的数据\n");
 
     const auto fish_param_sheet = game_reader.get_excel("FishParameter");
     for (std::size_t i = 0; i < fish_param_sheet.get_exh_reader().get_pages().size(); i++)
@@ -70,6 +71,7 @@ void data::game::setup_excel_sheet()
         }
     }
 
+    print(stdout, fmt::emphasis::bold, "[-] 正在获取刺鱼的数据\n");
     const auto spear_fish_sheet = game_reader.get_excel("SpearfishingItem");
     for (std::size_t i = 0; i < spear_fish_sheet.get_exh_reader().get_pages().size(); i++)
     {

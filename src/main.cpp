@@ -7,6 +7,7 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <magic_enum.hpp>
+#include <stacktrace>
 
 void set_utf8_output()
 {
@@ -122,7 +123,7 @@ int main()
     }
     catch (std::exception& ex)
     {
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n", ex.what());
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n{}\n", ex.what(), std::to_string(std::stacktrace::current()));
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 
