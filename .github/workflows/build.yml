@@ -32,7 +32,7 @@ jobs:
     - name: Prepare artifacts
       run: |
         cp config.toml ./build/${{env.BUILD_TYPE}} 
-        del .\build\Release\xivres.lib
+        del .\build\${{env.BUILD_TYPE}}\xivres.lib
         
       
     - name: Upload artifacts
