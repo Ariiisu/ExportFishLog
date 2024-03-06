@@ -54,7 +54,7 @@ void mem::process::setup_base_address()
     auto mod = lph_module[0];
     _process_path.resize(MAX_PATH);
 
-    if (!GetModuleFileNameEx(_handle, mod, _process_path.data(), MAX_PATH))
+    if (!GetModuleFileNameExW(_handle, mod, _process_path.data(), MAX_PATH))
         throw std::exception("无法获取ffxiv_dx11.exe的module名, 可能因为没有用管理员运行或者杀毒软件误报");
 
     MODULEINFO module_info{};

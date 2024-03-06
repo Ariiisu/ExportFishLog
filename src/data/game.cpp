@@ -4,7 +4,6 @@
 
 #include <xivres/installation.h>
 #include <xivres/excel.h>
-
 #include <fmt/color.h>
 
 void data::game::setup_address()
@@ -35,7 +34,8 @@ void data::game::setup_address()
 
 void data::game::setup_excel_sheet()
 {
-    const xivres::installation game_reader(_process->get_process_path());
+    const std::wstring path = _process->get_process_path();
+    const xivres::installation game_reader(path);
 
     std::once_flag flag{};
     std::size_t inlog_index = 0;
@@ -72,6 +72,7 @@ void data::game::setup_excel_sheet()
     }
 
     print(stdout, fmt::emphasis::bold, "[-] 正在获取刺鱼的数据\n");
+
     const auto spear_fish_sheet = game_reader.get_excel("SpearfishingItem");
     for (std::size_t i = 0; i < spear_fish_sheet.get_exh_reader().get_pages().size(); i++)
     {

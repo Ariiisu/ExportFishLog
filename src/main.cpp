@@ -94,6 +94,7 @@ int main()
         const auto process = std::make_shared<mem::process>("ffxiv_dx11.exe");
 
         data::game data(process);
+
         data.setup_excel_sheet();
         data.setup_address();
 
@@ -123,7 +124,8 @@ int main()
     }
     catch (std::exception& ex)
     {
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n{}\n", ex.what(), std::to_string(std::stacktrace::current()));
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 运行时发生异常: {}\n", ex.what());
+        std::cout << std::to_string(std::stacktrace::current()) << std::endl;
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 

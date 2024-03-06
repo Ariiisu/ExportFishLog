@@ -26,7 +26,7 @@ endif()
 
 project(ExportFishLog
 	VERSION
-		1.6
+		1.7
 )
 
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
@@ -191,6 +191,7 @@ if(MSVC) # msvc
 		"/w14640"
 		"/EHsc"
 		"/MP"
+		"/utf-8"
 	)
 endif()
 
@@ -240,6 +241,7 @@ if(MSVC) # msvc
 		"/w14640"
 		"/EHsc"
 		"/MP"
+		"/utf-8"
 	)
 endif()
 

@@ -31,7 +31,7 @@ namespace mem
         std::string _process_name{};
         std::uint32_t _pid{};
         HANDLE _handle{};
-        std::string _process_path;
+        std::wstring _process_path;
 
         bool read_impl(std::uintptr_t address, void* buffer, std::size_t size) const;
         bool write_impl(std::uintptr_t address, const void* buffer, std::size_t size) const;
@@ -64,7 +64,7 @@ namespace mem
         std::vector<std::uintptr_t> find_pattern_multi(pattern::impl::make<> pattern, bool rel = false, std::uint8_t rel_offset = 3);
         std::vector<std::uintptr_t> find_pattern_multi(const std::span<pattern::impl::hex_data>& pattern, bool rel = false, std::uint8_t rel_offset = 3);
 
-        std::string get_process_path()
+        std::wstring get_process_path()
         {
             return _process_path;
         }
