@@ -9,7 +9,10 @@
 #include <magic_enum.hpp>
 #include <stacktrace>
 
-void set_utf8_output()
+#include <Windows.h>
+#include <tlhelp32.h>
+
+static void set_utf8_output()
 {
     // https://stackoverflow.com/a/45622802
     // https://stackoverflow.com/a/77225440
@@ -20,7 +23,7 @@ void set_utf8_output()
     SetConsoleCP(CP_UTF8);
 }
 
-void enable_color()
+static void enable_color()
 {
     // enable color support
     const auto std_handle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -40,7 +43,7 @@ void enable_color()
     SetConsoleMode(std_handle, mode);
 }
 
-void parse_input(pastry_fish::Main& pastry_fish_struct)
+static void parse_input(pastry_fish::Main& pastry_fish_struct)
 {
     const auto read_error = glz::read_file_json(pastry_fish_struct, "./pastry_fish_data.json", std::string{});
     if (!read_error)
@@ -66,9 +69,72 @@ void parse_input(pastry_fish::Main& pastry_fish_struct)
 
     fmt::print(stdout,
                fmt::emphasis::bold | fg(fmt::color::red),
-               "[x] 在解析鱼糕导出的数据时出错. 原因: {} / loc: {}. 生成出来的内容只会有钓过的鱼\n",
+               "[x] 在解析鱼糕导出的数据时出错. 原因: {} / loc: {}. 生成出来的内容不会带有鱼糕的设置.\n",
                magic_enum::enum_name(parse_error.ec),
                parse_error.location);
+}
+
+static std::vector<DWORD> get_ffxiv_processes()
+{
+    std::vector<DWORD> result{};
+    PROCESSENTRY32 entry;
+    entry.dwSize = sizeof(PROCESSENTRY32);
+
+    const auto snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+
+    for (auto ok = Process32First(snapshot, &entry); ok; ok = Process32Next(snapshot, &entry))
+    {
+        if (std::string_view(entry.szExeFile).compare("ffxiv_dx11.exe") != 0)
+            continue;
+
+        const auto pid = entry.th32ProcessID;
+        if (std::ranges::contains(result, pid))
+            continue;
+
+        result.push_back(pid);
+    }
+
+    CloseHandle(snapshot);
+    return result;
+}
+
+static void dump_data(pastry_fish::Main& pastry_fish_struct, const DWORD pid)
+{
+    const auto process = mem::process(pid);
+
+    try
+    {
+        data::game data(process);
+
+        data.setup_excel_sheet();
+        data.setup_address();
+
+        std::once_flag flag{};
+
+        while (!data.is_valid())
+        {
+            std::call_once(flag,
+                           [pid]
+                           {
+                               print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] PID: {}, 检测不到本地玩家, 数据将会在检测到后导出\n", pid);
+                           });
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        pastry_fish_struct.completed = data.get_unlocked_fishes();
+
+        auto name = data.get_localplayer_name();
+        if (glz::write_file_json(pastry_fish_struct, fmt::format("./result_{}.json", name), std::string{}))
+        {
+            throw std::runtime_error(fmt::format("写入文件时出错"));
+        }
+
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] {0} 的数据已写入到 result_{0}.json 里.\n", name);
+    }
+    catch (std::exception& ex)
+    {
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] PID: {}, 运行时发生异常: {}\n", ex.what(), pid);
+    }
 }
 
 int main()
@@ -88,37 +154,34 @@ int main()
 
     try
     {
-        std::once_flag flag;
+        const auto processes = get_ffxiv_processes();
+        if (processes.empty())
+        {
+            print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 没有ffxiv_dx11.exe在运行\n");
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+            return 1;
+        }
+
         data::config.setup();
 
-        const auto process = std::make_shared<mem::process>("ffxiv_dx11.exe");
-
-        data::game data(process);
-
-        data.setup_excel_sheet();
-        data.setup_address();
-
-        pastry_fish::Main pastry_fish_struct;
+        pastry_fish::Main pastry_fish_struct{};
         parse_input(pastry_fish_struct);
 
-        while (!data.is_valid())
-        {
-            std::call_once(flag,
-                           []
-                           {
-                               print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] 检测不到本地玩家,数据将会在检测到后导出\n");
-                           });
+        glz::pool pool;
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        for (const DWORD& pid : processes)
+        {
+            pool.emplace_back(
+            [&]
+            {
+                dump_data(pastry_fish_struct, pid);
+            });
         }
 
-        pastry_fish_struct.completed = data.get_unlocked_fishes();
-        if (glz::write_file_json(pastry_fish_struct, "./result.json", std::string{}))
-        {
-            throw std::runtime_error(fmt::format("写入文件时出错"));
-        }
+        pool.wait();
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 结果已保存到 \"result.json\", 5秒后退出程序.\n");
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 完毕, 5秒后退出程序.\n");
 
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }

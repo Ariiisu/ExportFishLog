@@ -9,7 +9,7 @@ namespace data
     class game
     {
     public:
-        explicit game(const std::shared_ptr<mem::process>& process)
+        explicit game(const mem::process& process)
         {
             _process = process;
         }
@@ -17,20 +17,22 @@ namespace data
         void setup_address();
         void setup_excel_sheet();
 
-        [[nodiscard]] std::vector<std::uint32_t> get_unlocked_fishes() const;
-        [[nodiscard]] bool is_valid() const;
+        [[nodiscard]] std::vector<std::uint32_t> get_unlocked_fishes();
+        [[nodiscard]] bool is_valid();
+        std::string get_localplayer_name();
 
     private:
-        [[nodiscard]] bool is_fish_unlocked(std::uint32_t fish_id) const;
-        [[nodiscard]] bool is_spear_fish_unlocked(std::uint32_t fish_id) const;
+        [[nodiscard]] bool is_fish_unlocked(std::uint32_t fish_id);
+        [[nodiscard]] bool is_spear_fish_unlocked(std::uint32_t fish_id);
 
         std::uintptr_t _fishlog_address{};
         std::uintptr_t _spear_fishlog_address{};
         std::uintptr_t _object_table{};
-        std::shared_ptr<mem::process> _process;
+        std::uintptr_t _local_player_name{};
+        mem::process _process{};
 
-        std::unordered_map<std::uint32_t, std::uint32_t> _fishlog_map {};
-        std::unordered_map<std::uint32_t, std::uint32_t> _spear_fishlog_map {};
-        std::size_t _spearfish_notebook_size {};
+        std::unordered_map<std::uint32_t, std::uint32_t> _fishlog_map{};
+        std::unordered_map<std::uint32_t, std::uint32_t> _spear_fishlog_map{};
+        std::size_t _spearfish_notebook_size{};
     };
 }

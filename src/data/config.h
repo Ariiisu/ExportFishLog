@@ -11,6 +11,8 @@ namespace data
             std::string fishlog{};
             std::string spear_fishlog{};
             std::string object_table{};
+            std::string current_fishing_bite{};
+            std::string localplayer_name{};
         };
 
         void setup();

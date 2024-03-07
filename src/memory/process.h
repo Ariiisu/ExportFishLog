@@ -16,7 +16,8 @@ namespace mem
     {
     public:
         process() = default;
-        explicit process(std::string_view process_name);
+        process(std::string_view process_name);
+        process(DWORD pid);
 
     private:
         void look_for_proess();
@@ -47,6 +48,16 @@ namespace mem
             return res;
         }
 
+        template <typename T, std::size_t size>
+        std::optional<T*> read(std::uintptr_t address)
+        {
+            T res[size]{};
+            if (!read_impl(address, &res, size))
+                return std::nullopt;
+
+            return res;
+        }
+
         template <typename T>
         bool write(std::uintptr_t address, T value)
         {
@@ -67,6 +78,11 @@ namespace mem
         std::wstring get_process_path()
         {
             return _process_path;
+        }
+
+        std::uint32_t get_pid() const
+        {
+            return _pid;
         }
     };
 }

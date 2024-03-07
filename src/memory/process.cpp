@@ -10,6 +10,13 @@ mem::process::process(std::string_view process_name)
     look_for_proess();
 }
 
+mem::process::process(DWORD pid)
+{
+    _pid    = pid;
+    _handle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, false, pid);
+    setup_base_address();
+}
+
 void mem::process::look_for_proess()
 {
     PROCESSENTRY32 entry;
@@ -22,7 +29,8 @@ void mem::process::look_for_proess()
         if (this->_process_name == entry.szExeFile)
         {
             const auto handle = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE, false, entry.th32ProcessID);
-            [[unlikely]] if (!handle)
+            if (!handle)
+            [[unlikely]]
             {
                 CloseHandle(snapshot);
                 return;
