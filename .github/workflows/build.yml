@@ -52,5 +52,5 @@ jobs:
       uses: softprops/action-gh-release@v0.1.15
       with:
         files: |
-        ExportFishlog.zip
-        ExportFishlog_pdb.zip
+          ExportFishlog.zip
+          ExportFishlog_pdb.zip
