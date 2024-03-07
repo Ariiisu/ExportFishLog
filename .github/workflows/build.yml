@@ -35,11 +35,22 @@ jobs:
         del .\build\${{env.BUILD_TYPE}}\xivres.lib
         mkdir .\build\pdb
         copy .\build\${{env.BUILD_TYPE}}\*.pdb .\build\${{env.BUILD_TYPE}}\pdb
-      
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+
+    - name: Compress files
+      uses: vimtor/action-zip@v1.1
       with:
-        name: ExportFishLog
-        path: |
-          ./build/${{env.BUILD_TYPE}}
-          ./build/pdb
+        files: ./build/${{env.BUILD_TYPE}}
+        dest: ExportFishlog.zip
+
+    - name: Compress pdbs
+      uses: vimtor/action-zip@v1.1
+      with:
+        files: ./build/pdb
+        dest: ExportFishlog_pdb.zip
+        
+    - name: Upload artifacts
+      uses: softprops/action-gh-release@v0.1.15      with:
+      with:
+        files: |
+        ExportFishlog.zip
+        ExportFishlog_pdb.zip
