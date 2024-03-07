@@ -49,7 +49,7 @@ jobs:
         dest: ExportFishlog_pdb.zip
         
     - name: Upload artifacts
-      uses: softprops/action-gh-release@v0.1.15      with:
+      uses: softprops/action-gh-release@v0.1.15
       with:
         files: |
         ExportFishlog.zip
