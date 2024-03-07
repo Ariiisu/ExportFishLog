@@ -34,7 +34,7 @@ jobs:
         cp config.toml .\build\${{env.BUILD_TYPE}} 
         del .\build\${{env.BUILD_TYPE}}\xivres.lib
         mkdir .\build\pdb
-        copy .\build\${{env.BUILD_TYPE}}\*.pdb .\build\${{env.BUILD_TYPE}}\pdb
+        move .\build\${{env.BUILD_TYPE}}\*.pdb .\build\pdb\
 
     - name: Compress files
       uses: vimtor/action-zip@v1.1
