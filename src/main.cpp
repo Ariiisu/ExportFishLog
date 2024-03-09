@@ -123,17 +123,19 @@ static void dump_data(pastry_fish::Main& pastry_fish_struct, const DWORD pid)
         }
         pastry_fish_struct.completed = data.get_unlocked_fishes();
 
-        auto name = data.get_localplayer_name();
-        if (glz::write_file_json(pastry_fish_struct, fmt::format("./result_{}.json", name), std::string{}))
+        const auto name = data.get_localplayer_name();
+        const auto content_id = data.get_localplayer_content_id();
+        const auto file_name = fmt::format("result_{}_{:x}.json", name, content_id);
+        if (glz::write_file_json(pastry_fish_struct, file_name, std::string {}))
         {
             throw std::runtime_error(fmt::format("写入文件时出错"));
         }
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] {0} 的数据已写入到 result_{0}.json 里.\n", name);
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] {0} 的数据已写入到 {1} 里.\n", name, file_name);
     }
     catch (std::exception& ex)
     {
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] PID: {}, 运行时发生异常: {}\n", ex.what(), pid);
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] PID: {}, 运行时发生异常: {}\n", pid, ex.what());
     }
 }
 

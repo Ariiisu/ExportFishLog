@@ -8,7 +8,12 @@
 
 void data::game::setup_address()
 {
-    const auto [fishlog_sig, spear_fishlog_sig, object_table_sig, current_fishing_bite_sig, localplayer_name_sig] = config.signatures();
+    const auto [fishlog_sig,
+        spear_fishlog_sig,
+        object_table_sig,
+        current_fishing_bite_sig,
+        localplayer_name_sig,
+        localplayer_content_id] = config.signatures();
 
     _fishlog_address = _process.find_pattern(pattern::make(fishlog_sig), true);
     if (!_fishlog_address)
@@ -21,7 +26,7 @@ void data::game::setup_address()
               fmt::emphasis::bold | fg(fmt::color::yellow),
               "[!] 刺鱼日志的signature失效,用另外一种方法获取地址.如果两种方法都无效,或得出的结果有异常,请打开 \"config.toml\" 然后更新spear_fishlog的signature\n");
 
-        const auto current_fishing_bite_address = _process.find_pattern(pattern::make(current_fishing_bite_sig), true);
+        const auto current_fishing_bite_address = _process.find_pattern(pattern::make(current_fishing_bite_sig), true, 2);
 
         _spear_fishlog_address = current_fishing_bite_address + 4 /*skip current field*/ + (_spearfish_notebook_size >> 3);
     }
@@ -31,8 +36,14 @@ void data::game::setup_address()
         throw std::exception("找不到object table的地址, 更新下signature");
 
     _local_player_name = _process.find_pattern(pattern::make(localplayer_name_sig), true);
+    if (!_local_player_name)
+        throw std::exception("找不到local_player_name的地址, 更新下signature");
 
-    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 所需地址已找到\n");
+    _local_player_content_id = _process.find_pattern(pattern::make(localplayer_content_id), true);
+    if (!_local_player_content_id)
+        throw std::exception("找不到local_player_content_id的地址, 更新下signature");
+
+    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] PID: {}, 所需地址已找到\n", _process.get_pid());
 }
 
 void data::game::setup_excel_sheet()
@@ -42,7 +53,7 @@ void data::game::setup_excel_sheet()
 
     std::once_flag flag{};
     std::size_t inlog_index = 0;
-    print(stdout, fmt::emphasis::bold, "[-] 正在获取钓鱼的数据\n");
+    print(stdout, fmt::emphasis::bold, "[-] PID: {}, 正在获取钓鱼的数据\n", _process.get_pid());
 
     const auto fish_param_sheet = game_reader.get_excel("FishParameter");
     for (std::size_t i = 0; i < fish_param_sheet.get_exh_reader().get_pages().size(); i++)
@@ -74,7 +85,7 @@ void data::game::setup_excel_sheet()
         }
     }
 
-    print(stdout, fmt::emphasis::bold, "[-] 正在获取刺鱼的数据\n");
+    print(stdout, fmt::emphasis::bold, "[-] PID: {}, 正在获取刺鱼的数据\n", _process.get_pid());
 
     const auto spear_fish_sheet = game_reader.get_excel("SpearfishingItem");
     for (std::size_t i = 0; i < spear_fish_sheet.get_exh_reader().get_pages().size(); i++)
@@ -101,12 +112,12 @@ void data::game::setup_excel_sheet()
         }
     }
 
-    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] 已获取所需csv文件的内容\n");
+    print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] PID: {}, 已获取所需csv文件的内容\n", _process.get_pid());
 }
 
 std::vector<std::uint32_t> data::game::get_unlocked_fishes()
 {
-    print(stdout, fmt::emphasis::bold, "[-] 导出数据中...\n");
+    print(stdout, fmt::emphasis::bold, "[-] PID: {}, 导出数据中...\n", _process.get_pid());
 
     std::vector<std::uint32_t> result{};
     for (const auto& [param_id, item_id] : _fishlog_map)
@@ -168,4 +179,13 @@ std::string data::game::get_localplayer_name()
     const auto buffer = _process.read<char, 32>(_local_player_name).value();
 
     return buffer;
+}
+
+std::uint64_t data::game::get_localplayer_content_id()
+{
+    const auto val = _process.read<std::uintptr_t>(_local_player_content_id);
+    if (!val)
+        throw std::exception("无法获取本地玩家的content id. 可能因为没有管理员运行或者杀软误报");
+
+    return *val;
 }

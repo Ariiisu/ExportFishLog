@@ -13,6 +13,7 @@ namespace data
             std::string object_table{};
             std::string current_fishing_bite{};
             std::string localplayer_name{};
+            std::string localplayer_content_id{};
         };
 
         void setup();
