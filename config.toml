@@ -2,8 +2,8 @@
 # 至于怎么找的话,请用ghidra或者ida
 # 或者看GatherBuddy跟aers/FFXivClientStructs
 [signatures]
-fishlog = "4C 8D 2D ?? ?? ?? ?? 41 8B EF"
-spear_fishlog = "48 8D 0D ?? ?? ?? ?? 41 0F B6 0C 08 84 D1 40 0F 95 C7"
+fishlog = "4C 8D 2D ? ? ? ? 41 8B EF"
+spear_fishlog = "48 8D 05 ? ? ? ? 41 0F B6 04 00 D3 E2 84 D0 0F B6 46"
 object_table = "48 8D 0D ? ? ? ? E8 ? ? ? ? 44 0F B6 83 ? ? ? ? C6 83"
 current_fishing_bite = "3B 05 ? ? ? ? 75 ? C6 43"
 localplayer_name = "48 8D 05 ? ? ? ? 48 83 C4 ? 5B C3 45 33 C0"
