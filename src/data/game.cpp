@@ -61,7 +61,7 @@ void data::game::setup_excel_sheet()
         {
             for (const auto& subrow : row)
             {
-                const auto item_id = subrow[1].int32;
+                const auto item_id = subrow[4].int32;
                 const auto in_log  = subrow[12].boolean;
 
                 if (item_id == 0 || !in_log)

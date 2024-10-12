@@ -102,7 +102,7 @@ std::uintptr_t mem::process::find_pattern(pattern::impl::make<> pattern, const b
 
     if (rel)
     {
-        const auto offset = read<std::uint32_t>(res + rel_offset);
+        const auto offset = read<std::int32_t>(res + rel_offset);
         if (!offset.has_value())
             throw std::exception("[find_pattern] 读取offset失败, 可能因为没有用管理员运行或者杀毒软件误报");
 
