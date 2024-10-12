@@ -51,7 +51,6 @@ void data::game::setup_excel_sheet()
     const std::wstring path = _process.get_process_path();
     const xivres::installation game_reader(path);
 
-    std::once_flag flag{};
     std::size_t inlog_index = 0;
     print(stdout, fmt::emphasis::bold, "[-] PID: {}, 正在获取钓鱼的数据\n", _process.get_pid());
 
@@ -62,20 +61,8 @@ void data::game::setup_excel_sheet()
         {
             for (const auto& subrow : row)
             {
-                std::call_once(flag,
-                               [&]
-                               {
-                                   for (std::size_t j{}; j < subrow.size(); j++)
-                                   {
-                                       if (subrow[j].Type != xivres::excel::cell_type::PackedBool1)
-                                           continue;
-                                       inlog_index = j;
-                                       break;
-                                   }
-                               });
-
                 const auto item_id = subrow[1].int32;
-                const auto in_log  = subrow[inlog_index].boolean;
+                const auto in_log  = subrow[12].boolean;
 
                 if (item_id == 0 || !in_log)
                     continue;
