@@ -84,7 +84,7 @@ std::pair<xivres::path_spec, std::vector<char>> xivres::excel::type2gen::flush(u
 	exdHeader.DataSize = static_cast<uint32_t>(dataSize);
 
 	std::vector<exd::row::locator> locators;
-	auto offsetAccumulator = static_cast<uint32_t>(sizeof exdHeader + rows.size() * sizeof exd::row::locator);
+	auto offsetAccumulator = static_cast<uint32_t>(sizeof exdHeader + rows.size() * sizeof(exd::row::locator));
 	for (const auto& row : rows) {
 		locators.emplace_back(row.first, offsetAccumulator);
 		offsetAccumulator += static_cast<uint32_t>(row.second.size());
@@ -130,9 +130,9 @@ std::map<xivres::path_spec, std::vector<char>, xivres::path_spec::FullPathCompar
 		for (const auto language : Languages) {
 			std::map<uint32_t, std::vector<char>> rows;
 			for (const auto id : page.second) {
-				std::vector<char> row(sizeof exd::row::header + FixedDataSize);
+				std::vector<char> row(sizeof(exd::row::header) + FixedDataSize);
 
-				const auto fixedDataOffset = sizeof exd::row::header;
+				const auto fixedDataOffset = sizeof(exd::row::header);
 				const auto variableDataOffset = fixedDataOffset + FixedDataSize;
 
 				auto sourceLanguage = language;

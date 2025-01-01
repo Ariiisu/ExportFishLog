@@ -21,11 +21,11 @@ namespace xivres::image_change_data {
 	};
 
 	struct entry {
-		uint8_t Variant;
-		uint8_t Unknown_0x001;
-		LE<uint16_t> Mask;
-		uint8_t Vfx;
-		uint8_t Animation;
+		uint8_t MaterialId;
+		uint8_t DecalId;
+		LE<uint16_t> AttributeAndSound;
+		uint8_t VfxId;
+		uint8_t MaterialAnimationId;
 	};
 
 	class file {
@@ -33,20 +33,20 @@ namespace xivres::image_change_data {
 
 	public:
 		file()
-			: m_data(sizeof image_change_data::header) {
+			: m_data(sizeof(image_change_data::header)) {
 		}
 
 		file(const stream& strm)
 			: m_data(strm.read_vector<uint8_t>()) {
-			if (m_data.size() < sizeof image_change_data::header) {
+			if (m_data.size() < sizeof(image_change_data::header)) {
 				m_data.clear();
-				m_data.resize(sizeof image_change_data::header);
+				m_data.resize(sizeof(image_change_data::header));
 			}
 		}
 
 		file(file&& file) noexcept
 			: m_data(std::move(file.m_data)) {
-			file.m_data.resize(sizeof image_change_data::header);
+			file.m_data.resize(sizeof(image_change_data::header));
 		}
 
 		file(const file& file)
@@ -55,7 +55,7 @@ namespace xivres::image_change_data {
 
 		file& operator=(file&& file) noexcept {
 			m_data = std::move(file.m_data);
-			file.m_data.resize(sizeof image_change_data::header);
+			file.m_data.resize(sizeof(image_change_data::header));
 			return *this;
 		}
 
@@ -88,19 +88,19 @@ namespace xivres::image_change_data {
 		}
 
 		[[nodiscard]] entry& entry(size_t index) {
-			return reinterpret_cast<image_change_data::entry*>(m_data.data() + sizeof image_change_data::header)[index];
+			return reinterpret_cast<image_change_data::entry*>(m_data.data() + sizeof(image_change_data::header))[index];
 		}
 
 		[[nodiscard]] const image_change_data::entry& entry(size_t index) const {
-			return reinterpret_cast<const image_change_data::entry*>(m_data.data() + sizeof image_change_data::header)[index];
+			return reinterpret_cast<const image_change_data::entry*>(m_data.data() + sizeof(image_change_data::header))[index];
 		}
 
 		[[nodiscard]] std::span<image_change_data::entry> entries() {
-			return { reinterpret_cast<image_change_data::entry*>(m_data.data() + sizeof image_change_data::header), (m_data.size() - sizeof image_change_data::header) / sizeof image_change_data::entry };
+			return { reinterpret_cast<image_change_data::entry*>(m_data.data() + sizeof(image_change_data::header)), (m_data.size() - sizeof(image_change_data::header)) / sizeof(image_change_data::entry) };
 		}
 
 		[[nodiscard]] std::span<const image_change_data::entry> entries() const {
-			return { reinterpret_cast<const image_change_data::entry*>(m_data.data() + sizeof image_change_data::header), (m_data.size() - sizeof image_change_data::header) / sizeof image_change_data::entry };
+			return { reinterpret_cast<const image_change_data::entry*>(m_data.data() + sizeof(image_change_data::header)), (m_data.size() - sizeof(image_change_data::header)) / sizeof(image_change_data::entry) };
 		}
 
 		void resize(size_t subsetCount) {
@@ -108,13 +108,13 @@ namespace xivres::image_change_data {
 				throw std::range_error("up to 64k subsets are supported");
 			const auto countPerSet = entry_count_per_set();
 			if (subsetCount > header().SubsetCount && header().SubsetCount > 0) {
-				m_data.resize(sizeof image_change_data::header + sizeof image_change_data::entry * countPerSet * (size_t{ 1 } + header().SubsetCount));
-				m_data.reserve(sizeof image_change_data::header + sizeof image_change_data::entry * countPerSet * (1 + subsetCount));
+				m_data.resize(sizeof(image_change_data::header) + sizeof(image_change_data::entry) * countPerSet * (size_t{ 1 } + header().SubsetCount));
+				m_data.reserve(sizeof(image_change_data::header) + sizeof(image_change_data::entry) * countPerSet * (1 + subsetCount));
 				for (auto i = *header().SubsetCount; i < subsetCount; ++i) {
-					m_data.insert(m_data.end(), &m_data[sizeof image_change_data::header], &m_data[sizeof image_change_data::header + sizeof image_change_data::entry * countPerSet]);
+					m_data.insert(m_data.end(), &m_data[sizeof(image_change_data::header)], &m_data[sizeof(image_change_data::header) + sizeof(image_change_data::entry) * countPerSet]);
 				}
 			} else {
-				m_data.resize(sizeof image_change_data::header + sizeof image_change_data::entry * countPerSet * (1 + subsetCount));
+				m_data.resize(sizeof(image_change_data::header) + sizeof(image_change_data::entry) * countPerSet * (1 + subsetCount));
 			}
 			header().SubsetCount = static_cast<uint16_t>(subsetCount);
 		}

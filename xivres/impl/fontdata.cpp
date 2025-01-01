@@ -184,13 +184,25 @@ void xivres::fontdata::stream::add_glyph(const glyph_entry& entry) {
 		it = std::lower_bound(m_fontTableEntries.begin(), m_fontTableEntries.end(), entry);
 
 	if (it == m_fontTableEntries.end() || it->Utf8Value != entry.Utf8Value) {
-		if (m_fontTableEntries.size() >= 65535)
+		if (m_fontTableEntries.size() >= 65535 || (entry.Utf8Value == 0x20 && m_fontTableEntries.size() >= 65534))
 			throw std::runtime_error("The game supports up to 65535 characters.");
 		it = m_fontTableEntries.insert(it, entry);
 		m_fcsv.KerningHeaderOffset += sizeof entry;
 		m_fthd.FontTableEntryCount += 1;
 	} else
 		*it = entry;
+
+	// Initial space repeats.
+	if (entry.Utf8Value == 0x20) {
+		++it;
+		if (it == m_fontTableEntries.end() || it->Utf8Value != 0x20) {
+			m_fontTableEntries.insert(it, entry);
+			m_fcsv.KerningHeaderOffset += sizeof entry;
+			m_fthd.FontTableEntryCount += 1;
+		} else {
+			*it = entry;
+		}
+	}
 }
 
 void xivres::fontdata::stream::add_glyph(char32_t c, uint16_t textureIndex, uint16_t textureOffsetX, uint16_t textureOffsetY, uint8_t boundingWidth, uint8_t boundingHeight, int8_t nextOffsetX, int8_t currentOffsetY) {
@@ -206,7 +218,7 @@ void xivres::fontdata::stream::add_glyph(char32_t c, uint16_t textureIndex, uint
 	});
 
 	if (it == m_fontTableEntries.end() || it->Utf8Value != val) {
-		if (m_fontTableEntries.size() >= 65535)
+		if (m_fontTableEntries.size() >= 65535 || (c == 0x20 && m_fontTableEntries.size() >= 65534))
 			throw std::runtime_error("The game supports up to 65535 characters.");
 		auto entry = glyph_entry();
 		entry.Utf8Value = val;
@@ -223,6 +235,19 @@ void xivres::fontdata::stream::add_glyph(char32_t c, uint16_t textureIndex, uint
 	it->BoundingHeight = boundingHeight;
 	it->NextOffsetX = nextOffsetX;
 	it->CurrentOffsetY = currentOffsetY;
+
+	// Initial space repeats.
+	if (c == 0x20) {
+		const auto& entry = *it;
+		++it;
+		if (it == m_fontTableEntries.end() || it->Utf8Value != 0x20) {
+			m_fontTableEntries.insert(it, entry);
+			m_fcsv.KerningHeaderOffset += sizeof entry;
+			m_fthd.FontTableEntryCount += 1;
+		} else {
+			*it = entry;
+		}
+	}
 }
 
 const std::vector<xivres::fontdata::glyph_entry>& xivres::fontdata::stream::get_glyphs() const {

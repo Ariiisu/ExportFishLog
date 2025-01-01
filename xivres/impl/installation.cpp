@@ -11,7 +11,7 @@
 xivres::installation::installation(std::filesystem::path gamePath)
 	: m_gamePath(std::move(gamePath)) {
 	for (const auto& iter : std::filesystem::recursive_directory_iterator(m_gamePath / "sqpack")) {
-		if (iter.is_directory() || !iter.path().wstring().ends_with(L".win32.index"))
+		if (iter.is_directory() || !iter.path().wstring().ends_with(L".win32.index2"))
 			continue;
 
 		auto packFileName = std::filesystem::path{ iter.path().filename() }.replace_extension("").replace_extension("").string();
@@ -61,9 +61,9 @@ const xivres::sqpack::reader& xivres::installation::get_sqpack(uint32_t packId) 
 
 	const auto expacId = (packId >> 8) & 0xFF;
 	if (expacId == 0)
-		return item.emplace(sqpack::reader::from_path(m_gamePath / std::format("sqpack/ffxiv/{:0>6x}.win32.index", packId)));
+		return item.emplace(sqpack::reader::from_path(m_gamePath / std::format("sqpack/ffxiv/{:0>6x}.win32.index2", packId)));
 	else
-		return item.emplace(sqpack::reader::from_path(m_gamePath / std::format("sqpack/ex{}/{:0>6x}.win32.index", expacId, packId)));
+		return item.emplace(sqpack::reader::from_path(m_gamePath / std::format("sqpack/ex{}/{:0>6x}.win32.index2", expacId, packId)));
 }
 
 void xivres::installation::preload_all_sqpacks() const {

@@ -13,22 +13,22 @@ std::streamsize xivres::texture_passthrough_packer::size() {
 	std::streamsize size = 0;
 
 	// packed::file_header packedFileHeader;
-	size += sizeof packed::file_header;
+	size += sizeof(packed::file_header);
 
 	// packed::mipmap_block_locator lodBlocks[mipmapCount];
-	size += MaxMipmapCountPerTexture * sizeof packed::mipmap_block_locator;
+	size += MaxMipmapCountPerTexture * sizeof(packed::mipmap_block_locator);
 
 	// uint16_t subBlockSizes[blockCount];
-	size += blockCount * sizeof uint16_t;
+	size += blockCount * sizeof(uint16_t);
 
 	// Align block
 	size = align(size);
 
 	// texture::header textureHeader;
-	size += sizeof texture::header;
+	size += sizeof(texture::header);
 
 	// Mipmap offsets
-	size += blockCount * sizeof uint16_t;
+	size += blockCount * sizeof(uint16_t);
 
 	// Just to be safe, align block
 	size = align(size);
@@ -51,23 +51,23 @@ void xivres::texture_passthrough_packer::ensure_initialized() {
 	std::vector<uint8_t> textureHeaderAndMipmapOffsets;
 
 	auto entryHeader = packed::file_header{
-		.HeaderSize = sizeof packed::file_header,
+		.HeaderSize = sizeof(packed::file_header),
 		.Type = packed::type::texture,
 		.DecompressedSize = static_cast<uint32_t>(m_stream->size()),
 	};
 
-	textureHeaderAndMipmapOffsets.resize(sizeof texture::header);
+	textureHeaderAndMipmapOffsets.resize(sizeof(texture::header));
 	m_stream->read_fully(0, std::span(textureHeaderAndMipmapOffsets));
 
 	const auto mipmapCount = *reinterpret_cast<const texture::header*>(&textureHeaderAndMipmapOffsets[0])->MipmapCount;
-	textureHeaderAndMipmapOffsets.resize(sizeof texture::header + mipmapCount * sizeof uint32_t);
-	m_stream->read_fully(sizeof texture::header, util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof texture::header, mipmapCount));
+	textureHeaderAndMipmapOffsets.resize(sizeof(texture::header) + mipmapCount * sizeof uint32_t);
+	m_stream->read_fully(sizeof(texture::header), util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof(texture::header), mipmapCount));
 
-	const auto firstBlockOffset = *reinterpret_cast<const uint32_t*>(&textureHeaderAndMipmapOffsets[sizeof texture::header]);
+	const auto firstBlockOffset = *reinterpret_cast<const uint32_t*>(&textureHeaderAndMipmapOffsets[sizeof(texture::header)]);
 	textureHeaderAndMipmapOffsets.resize(firstBlockOffset);
-	const auto mipmapOffsetsSpan = util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof texture::header, mipmapCount);
+	const auto mipmapOffsetsSpan = util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof(texture::header), mipmapCount);
 	m_mipmapOffsets.insert(m_mipmapOffsets.begin(), mipmapOffsetsSpan.begin(), mipmapOffsetsSpan.end());
-	m_stream->read_fully(sizeof texture::header + mipmapOffsetsSpan.size_bytes(), std::span(textureHeaderAndMipmapOffsets).subspan(sizeof texture::header + mipmapOffsetsSpan.size_bytes()));
+	m_stream->read_fully(sizeof(texture::header) + mipmapOffsetsSpan.size_bytes(), std::span(textureHeaderAndMipmapOffsets).subspan(sizeof(texture::header) + mipmapOffsetsSpan.size_bytes()));
 	const auto& texHeader = *reinterpret_cast<const texture::header*>(&textureHeaderAndMipmapOffsets[0]);
 
 	m_mipmapSizes.resize(m_mipmapOffsets.size());
@@ -97,7 +97,7 @@ void xivres::texture_passthrough_packer::ensure_initialized() {
 			loc.BlockCount = blockAlignment.Count;
 
 			blockAlignment.iterate_chunks([&](uint32_t, uint32_t, uint32_t length) {
-				const auto alignmentInfo = align(sizeof packed::block_header + length);
+				const auto alignmentInfo = align(sizeof(packed::block_header) + length);
 
 				m_size += alignmentInfo.Alloc;
 				subBlockSizes.push_back(static_cast<uint16_t>(alignmentInfo.Alloc));
@@ -184,12 +184,12 @@ std::streamsize xivres::texture_passthrough_packer::translate_read(std::streamof
 			// Iterate through packed blocks belonging to current LOD block
 			for (; j < it->BlockCount; ++j, dataOffset += packed::MaxBlockDataSize) {
 				const auto decompressedSize = j == it->BlockCount - 1 ? mipmapSize % packed::MaxBlockDataSize : packed::MaxBlockDataSize;
-				const auto pad = align(sizeof packed::block_header + decompressedSize).Pad;
+				const auto pad = align(sizeof(packed::block_header) + decompressedSize).Pad;
 
 				// 1. Read packed block header
-				if (relativeOffset < sizeof packed::block_header) {
+				if (relativeOffset < sizeof(packed::block_header)) {
 					const auto header = packed::block_header{
-						.HeaderSize = sizeof packed::block_header,
+						.HeaderSize = sizeof(packed::block_header),
 						.Version = 0,
 						.CompressedSize = packed::block_header::CompressedSizeNotCompressed,
 						.DecompressedSize = decompressedSize,
@@ -202,7 +202,7 @@ std::streamsize xivres::texture_passthrough_packer::translate_read(std::streamof
 
 					if (out.empty()) return length;
 				} else
-					relativeOffset -= sizeof packed::block_header;
+					relativeOffset -= sizeof(packed::block_header);
 
 				// 2. Read packed block data
 				if (relativeOffset < decompressedSize) {
@@ -248,17 +248,17 @@ std::unique_ptr<xivres::stream> xivres::texture_compressing_packer::pack() {
 
 	const auto rawStreamSize = static_cast<uint32_t>(unpacked().size());
 
-	textureHeaderAndMipmapOffsets.resize(sizeof texture::header);
+	textureHeaderAndMipmapOffsets.resize(sizeof(texture::header));
 	unpacked().read_fully(0, std::span(textureHeaderAndMipmapOffsets));
 
 	const auto mipmapCount = *reinterpret_cast<const texture::header*>(&textureHeaderAndMipmapOffsets[0])->MipmapCount;
-	textureHeaderAndMipmapOffsets.resize(sizeof texture::header + mipmapCount * sizeof uint32_t);
-	unpacked().read_fully(sizeof texture::header, util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof texture::header, mipmapCount));
+	textureHeaderAndMipmapOffsets.resize(sizeof(texture::header) + mipmapCount * sizeof uint32_t);
+	unpacked().read_fully(sizeof(texture::header), util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof(texture::header), mipmapCount));
 
-	const auto firstBlockOffset = *reinterpret_cast<const uint32_t*>(&textureHeaderAndMipmapOffsets[sizeof texture::header]);
+	const auto firstBlockOffset = *reinterpret_cast<const uint32_t*>(&textureHeaderAndMipmapOffsets[sizeof(texture::header)]);
 	textureHeaderAndMipmapOffsets.resize(firstBlockOffset);
-	const auto mipmapOffsets = util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof texture::header, mipmapCount);
-	unpacked().read_fully(sizeof texture::header + mipmapOffsets.size_bytes(), std::span(textureHeaderAndMipmapOffsets).subspan(sizeof texture::header + mipmapOffsets.size_bytes()));
+	const auto mipmapOffsets = util::span_cast<uint32_t>(textureHeaderAndMipmapOffsets, sizeof(texture::header), mipmapCount);
+	unpacked().read_fully(sizeof(texture::header) + mipmapOffsets.size_bytes(), std::span(textureHeaderAndMipmapOffsets).subspan(sizeof(texture::header) + mipmapOffsets.size_bytes()));
 	const auto& texHeader = *reinterpret_cast<const texture::header*>(&textureHeaderAndMipmapOffsets[0]);
 
 	if (cancelled())
@@ -353,7 +353,7 @@ std::unique_ptr<xivres::stream> xivres::texture_compressing_packer::pack() {
 			if (mipmapItem.empty())
 				mipmapItem.emplace_back(false, false, 1, std::vector<uint8_t>(1));
 			for (const auto& block : mipmapItem)
-				entryBodyLength += align(sizeof packed::block_header + block.Data.size());
+				entryBodyLength += align(sizeof(packed::block_header) + block.Data.size());
 			subBlockCount += mipmapItem.size();
 		}
 	}
@@ -361,9 +361,9 @@ std::unique_ptr<xivres::stream> xivres::texture_compressing_packer::pack() {
 
 	const auto blockLocatorCount = mipmapCount * repeatCount;
 	const auto entryHeaderLength = static_cast<uint16_t>(align(0
-		+ sizeof packed::file_header
-		+ blockLocatorCount * sizeof packed::mipmap_block_locator
-		+ subBlockCount * sizeof uint16_t
+		+ sizeof(packed::file_header)
+		+ blockLocatorCount * sizeof(packed::mipmap_block_locator)
+		+ subBlockCount * sizeof(uint16_t)
 	));
 
 	std::vector<uint8_t> result(entryHeaderLength + entryBodyLength);
@@ -401,7 +401,7 @@ std::unique_ptr<xivres::stream> xivres::texture_compressing_packer::pack() {
 					return {};
 
 				auto& header = *reinterpret_cast<packed::block_header*>(&*resultDataPtr);
-				header.HeaderSize = sizeof packed::block_header;
+				header.HeaderSize = sizeof(packed::block_header);
 				header.Version = 0;
 				header.CompressedSize = blockData.Deflated ? static_cast<uint32_t>(blockData.Data.size()) : packed::block_header::CompressedSizeNotCompressed;
 				header.DecompressedSize = blockData.DecompressedSize;

@@ -6,7 +6,7 @@ xivres::standard_unpacker::standard_unpacker(const packed::file_header& header, 
 	: base_unpacker(header, std::move(strm))
 	, m_headerSize(header.HeaderSize) {
 
-	const auto locators = m_stream->read_vector<packed::standard_block_locator>(sizeof packed::file_header, header.BlockCountOrVersion);
+	const auto locators = m_stream->read_vector<packed::standard_block_locator>(sizeof(packed::file_header), header.BlockCountOrVersion);
 	m_blocks.reserve(locators.size());
 	auto requestOffset = 0U;
 	for (const auto& locator : locators) {

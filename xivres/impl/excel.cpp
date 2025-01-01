@@ -185,7 +185,7 @@ xivres::excel::exd::reader::reader(const exh::reader& exhReader, std::shared_ptr
 	: Stream(std::move(strm))
 	, ExhReader(exhReader)
 	, Header(Stream->read_fully<header>(0)) {
-	const auto count = Header.IndexSize / sizeof row::locator;
+	const auto count = Header.IndexSize / sizeof(row::locator);
 	m_rowIds.reserve(count);
 	m_offsets.reserve(count);
 	m_rowBuffers.resize(count);

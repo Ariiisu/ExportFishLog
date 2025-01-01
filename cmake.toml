@@ -1,7 +1,7 @@
 # Reference: https://build-cpp.github.io/cmkr/cmake-toml
 [project]
 name = "ExportFishLog"
-version = "1.8.3"
+version = "1.8.4"
 
 [vcpkg]
 version = "2024.09.30"

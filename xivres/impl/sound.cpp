@@ -213,7 +213,7 @@ void xivres::sound::writer::sound_item::export_to(std::vector<uint8_t>& res) con
 }
 
 void xivres::sound::writer::sound_item::set_mark_chunks(uint32_t loopStartSampleBlockIndex, uint32_t loopEndSampleBlockIndex, std::span<const uint32_t> marks) {
-	auto& buf = AuxChunks[std::string(sound_entry_aux_chunk::Name_Mark, sizeof sound_entry_aux_chunk::Name_Mark)];
+	auto& buf = AuxChunks[std::string(sound_entry_aux_chunk::Name_Mark, sizeof(sound_entry_aux_chunk::Name_Mark))];
 	buf.resize(12 + marks.size_bytes());
 	auto& markHeader = *reinterpret_cast<sound_entry_aux_chunk::mark_chunk_data*>(&buf[0]);
 	markHeader.LoopStartSampleBlockIndex = loopStartSampleBlockIndex;
@@ -428,10 +428,10 @@ std::vector<uint8_t> xivres::sound::writer::export_to_bytes() const {
 	};
 	memcpy(reinterpret_cast<header*>(&res[0])->SedbSignature,
 			header::SedbSignature_Value,
-			sizeof header::SedbSignature_Value);
+			sizeof(header::SedbSignature_Value));
 	memcpy(reinterpret_cast<header*>(&res[0])->SscfSignature,
 			header::SscfSignature_Value,
-			sizeof header::SscfSignature_Value);
+			sizeof(header::SscfSignature_Value));
 
 	*reinterpret_cast<offsets*>(&res[sizeof header]) = {
 		.Table1And4EntryCount = static_cast<uint16_t>(m_table1.size()),

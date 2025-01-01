@@ -59,7 +59,7 @@ bool xivres::base_unpacker::block_decoder::forward_copy(std::span<const uint8_t>
 }
 
 bool xivres::base_unpacker::block_decoder::forward_sqblock(std::span<const uint8_t> data) {
-	if (data.size() < sizeof packed::block_header)
+	if (data.size() < sizeof(packed::block_header))
 		throw bad_data_error("Block read size < sizeof blockHeader");
 	
 	const auto& blockHeader = *reinterpret_cast<const packed::block_header*>(&data[0]);

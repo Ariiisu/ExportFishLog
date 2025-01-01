@@ -4,7 +4,7 @@
 xivres::model_unpacker::model_unpacker(const packed::file_header& header, std::shared_ptr<const packed_stream> strm)
 	: base_unpacker(header, std::move(strm)) {
 	const auto underlyingSize = m_stream->size();
-	auto readOffset = static_cast<std::streamoff>(sizeof packed::file_header);
+	auto readOffset = static_cast<std::streamoff>(sizeof(packed::file_header));
 	const auto locator = m_stream->read_fully<packed::model_block_locator>(static_cast<std::streamoff>(readOffset));
 	const auto blockCount = static_cast<size_t>(locator.FirstBlockIndices.Index[2]) + locator.BlockCount.Index[2];
 

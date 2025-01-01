@@ -84,7 +84,7 @@ static std::vector<DWORD> get_ffxiv_processes()
 
     for (auto ok = Process32First(snapshot, &entry); ok; ok = Process32Next(snapshot, &entry))
     {
-        if (std::string_view(entry.szExeFile).compare("ffxiv_dx11.exe") != 0)
+        if (std::string_view(entry.szExeFile) != "ffxiv_dx11.exe")
             continue;
 
         const auto pid = entry.th32ProcessID;
@@ -168,7 +168,6 @@ int main()
         data::config.setup();
 
         pastry_fish::Main pastry_fish_struct{};
-        parse_input(pastry_fish_struct);
 
         glz::pool pool;
 

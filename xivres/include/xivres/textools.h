@@ -140,8 +140,8 @@ namespace xivres::textools {
 			uint32_t RotationA : 10;
 			uint32_t RotationB : 10;
 			uint32_t RotationC : 10;
-			uint8_t UnknownLow : 4;
-			uint8_t UnknownHigh : 4;
+			uint8_t UnknownA : 4;
+			uint8_t UnknownB : 4;
 		};
 		static_assert(sizeof equipment_and_gimmick_parameter_entry == 5);
 

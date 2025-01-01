@@ -38,7 +38,7 @@ void data::game::setup_address()
     _local_player_name = _process.find_pattern(pattern::make(localplayer_name_sig), true);
     if (!_local_player_name)
         throw std::exception("找不到local_player_name的地址, 更新下signature");
-
+    
     _local_player_content_id = _process.find_pattern(pattern::make(localplayer_content_id), true);
     if (!_local_player_content_id)
         throw std::exception("找不到local_player_content_id的地址, 更新下signature");
@@ -46,12 +46,16 @@ void data::game::setup_address()
     print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] PID: {}, 所需地址已找到\n", _process.get_pid());
 }
 
+static std::once_flag once_flag{};
+
 void data::game::setup_excel_sheet()
 {
     const std::wstring path = _process.get_process_path();
     const xivres::installation game_reader(path);
 
-    std::size_t inlog_index = 0;
+    int inlog_index   = -1;
+    int item_id_index = -1;
+
     print(stdout, fmt::emphasis::bold, "[-] PID: {}, 正在获取钓鱼的数据\n", _process.get_pid());
 
     const auto fish_param_sheet = game_reader.get_excel("FishParameter");
@@ -59,10 +63,36 @@ void data::game::setup_excel_sheet()
     {
         for (const auto& row : fish_param_sheet.get_exd_reader(i))
         {
+            std::call_once(once_flag,
+                           [row, &inlog_index, &item_id_index]
+                           {
+                               std::vector<xivres::excel::cell_type> types{};
+
+                               for (const auto& j : row[0])
+                               {
+                                   types.emplace_back(j.Type);
+                               }
+
+                               if (auto item_it = std::ranges::find(types, xivres::excel::cell_type::Int32); item_it != types.end())
+                               {
+                                   item_id_index = std::distance(types.begin(), item_it);
+                               }
+
+                               if (auto inlog_it = std::ranges::find(types, xivres::excel::cell_type::PackedBool1); inlog_it != types.end())
+                               {
+                                   inlog_index = std::distance(types.begin(), inlog_it);
+                               }
+
+                               if (inlog_index == -1)
+                                   throw std::exception("找不到 inlog 的index");
+                               if (item_id_index == -1)
+                                   throw std::exception("找不到 itemid 的index");
+                           });
+            
             for (const auto& subrow : row)
             {
-                const auto item_id = subrow[4].int32;
-                const auto in_log  = subrow[12].boolean;
+                const auto item_id = subrow[item_id_index].int32;
+                const auto in_log  = subrow[inlog_index].boolean;
 
                 if (item_id == 0 || !in_log)
                     continue;
@@ -163,9 +193,14 @@ bool data::game::is_valid()
 
 std::string data::game::get_localplayer_name()
 {
-    const auto buffer = _process.read<char, 32>(_local_player_name).value();
+    const auto buffer = _process.read_buffer<char, 32>(_local_player_name);
 
-    return buffer;
+    if (buffer.has_value())
+    {
+        return buffer.value().data();
+    }
+
+    return "empty";
 }
 
 std::uint64_t data::game::get_localplayer_content_id()

@@ -2,7 +2,7 @@
 
 xivres::texture_unpacker::texture_unpacker(const packed::file_header& header, std::shared_ptr<const packed_stream> strm)
 	: base_unpacker(header, std::move(strm)) {
-	auto readOffset = static_cast<std::streamoff>(sizeof packed::file_header);
+	auto readOffset = static_cast<std::streamoff>(sizeof(packed::file_header));
 	const auto locators = m_stream->read_vector<packed::mipmap_block_locator>(readOffset, header.BlockCountOrVersion);
 	readOffset += std::span(locators).size_bytes();
 

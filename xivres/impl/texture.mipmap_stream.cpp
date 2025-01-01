@@ -65,7 +65,7 @@ std::shared_ptr<xivres::texture::memory_mipmap_stream> xivres::texture::memory_m
 	const auto pixelCount = calc_raw_data_length(formats::L8, strm.Width, strm.Height, strm.Depth);
 	const auto cbSource = (std::min)(static_cast<size_t>(strm.size()), calc_raw_data_length(strm.Type, strm.Width, strm.Height, strm.Depth));
 
-	std::vector<uint8_t> result(pixelCount * sizeof util::b8g8r8a8);
+	std::vector<uint8_t> result(pixelCount * sizeof(util::b8g8r8a8));
 	const auto b8g8r8a8view = util::span_cast<util::b8g8r8a8>(result);
 	uint32_t pos = 0, read = 0;
 	uint8_t buf8[8192];
@@ -98,13 +98,13 @@ std::shared_ptr<xivres::texture::memory_mipmap_stream> xivres::texture::memory_m
 
 		case formats::B4G4R4A4:
 		{
-			if (cbSource < pixelCount * sizeof util::b4g4r4a4)
+			if (cbSource < pixelCount * sizeof(util::b4g4r4a4))
 				throw std::runtime_error("Truncated data detected");
 			const auto view = util::span_cast<util::b4g4r4a4>(buf8);
 			while (const auto len = static_cast<uint32_t>((std::min<uint64_t>)(cbSource - read, sizeof buf8))) {
 				strm.read_fully(read, buf8, len);
 				read += len;
-				for (size_t i = 0, count = len / sizeof util::b4g4r4a4; i < count; ++pos, ++i)
+				for (size_t i = 0, count = len / sizeof(util::b4g4r4a4); i < count; ++pos, ++i)
 					b8g8r8a8view[pos].set_components_from(view[i]);
 			}
 			break;
@@ -112,26 +112,26 @@ std::shared_ptr<xivres::texture::memory_mipmap_stream> xivres::texture::memory_m
 
 		case formats::B5G5R5A1:
 		{
-			if (cbSource < pixelCount * sizeof util::b5g5r5a1)
+			if (cbSource < pixelCount * sizeof(util::b5g5r5a1))
 				throw std::runtime_error("Truncated data detected");
 			const auto view = util::span_cast<util::b5g5r5a1>(buf8);
 			while (const auto len = static_cast<uint32_t>((std::min<uint64_t>)(cbSource - read, sizeof buf8))) {
 				strm.read_fully(read, buf8, len);
 				read += len;
-				for (size_t i = 0, count = len / sizeof util::b5g5r5a1; i < count; ++pos, ++i)
+				for (size_t i = 0, count = len / sizeof(util::b5g5r5a1); i < count; ++pos, ++i)
 					b8g8r8a8view[pos].set_components_from(view[i]);
 			}
 			break;
 		}
 
 		case formats::B8G8R8A8:
-			if (cbSource < pixelCount * sizeof util::b8g8r8a8)
+			if (cbSource < pixelCount * sizeof(util::b8g8r8a8))
 				throw std::runtime_error("Truncated data detected");
 			strm.read_fully(0, std::span(b8g8r8a8view));
 			break;
 
 		case formats::B8G8R8X8:
-			if (cbSource < pixelCount * sizeof util::b8g8r8a8)
+			if (cbSource < pixelCount * sizeof(util::b8g8r8a8))
 				throw std::runtime_error("Truncated data detected");
 			strm.read_fully(0, std::span(b8g8r8a8view));
 			for (auto& item : b8g8r8a8view) {
@@ -141,14 +141,14 @@ std::shared_ptr<xivres::texture::memory_mipmap_stream> xivres::texture::memory_m
 
 		case formats::R16G16B16A16F:
 		{
-			if (cbSource < pixelCount * sizeof util::r16g16b16a16f)
+			if (cbSource < pixelCount * sizeof(util::r16g16b16a16f))
 				throw std::runtime_error("Truncated data detected");
 			strm.read_fully(0, std::span(b8g8r8a8view));
 			const auto view = util::span_cast<util::r16g16b16a16f>(buf8);
 			while (const auto len = static_cast<uint32_t>((std::min<uint64_t>)(cbSource - read, sizeof buf8))) {
 				strm.read_fully(read, buf8, len);
 				read += len;
-				for (size_t i = 0, count = len / sizeof util::r16g16b16a16f; i < count; ++pos, ++i)
+				for (size_t i = 0, count = len / sizeof(util::r16g16b16a16f); i < count; ++pos, ++i)
 					b8g8r8a8view[pos].set_components_from(view[i]);
 			}
 			break;
@@ -156,14 +156,14 @@ std::shared_ptr<xivres::texture::memory_mipmap_stream> xivres::texture::memory_m
 
 		case formats::R32G32B32A32F:
 		{
-			if (cbSource < pixelCount * sizeof util::r32g32b32a32f)
+			if (cbSource < pixelCount * sizeof(util::r32g32b32a32f))
 				throw std::runtime_error("Truncated data detected");
 			strm.read_fully(0, std::span(b8g8r8a8view));
 			const auto view = util::span_cast<util::r32g32b32a32f>(buf8);
 			while (const auto len = static_cast<uint32_t>((std::min<uint64_t>)(cbSource - read, sizeof buf8))) {
 				strm.read_fully(read, buf8, len);
 				read += len;
-				for (size_t i = 0, count = len / sizeof util::r32g32b32a32f; i < count; ++pos, ++i)
+				for (size_t i = 0, count = len / sizeof(util::r32g32b32a32f); i < count; ++pos, ++i)
 					b8g8r8a8view[pos].set_components_from(view[i]);
 			}
 			break;

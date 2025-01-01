@@ -209,7 +209,7 @@ void xivres::texture::preview(const stream& texStream, std::wstring title) {
 	wcex.cbSize = sizeof(WNDCLASSEX);
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
 	wcex.hInstance = GetModuleHandleW(nullptr);
-	wcex.hCursor = LoadCursorA(nullptr, IDC_ARROW);
+	wcex.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 	wcex.hbrBackground = GetStockBrush(WHITE_BRUSH);
 	wcex.lpszClassName = L"xivres::util::ShowTextureStream";
 

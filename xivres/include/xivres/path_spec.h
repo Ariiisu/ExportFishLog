@@ -371,7 +371,7 @@ namespace xivres {
 template<>
 struct std::formatter<xivres::path_spec, char> : std::formatter<std::basic_string<char>, char> {
 	template<class FormatContext>
-	auto format(const xivres::path_spec& t, FormatContext& fc) {
+	auto format(const xivres::path_spec& t, FormatContext& fc) const {
 		if (t.has_original()) {
 			return std::formatter<std::basic_string<char>, char>::format(std::format(
 																			"{}({:08x}/{:08x}, {:08x})", t.text(), t.path_hash(), t.name_hash(), t.full_path_hash()), fc);

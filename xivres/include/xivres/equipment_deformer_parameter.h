@@ -130,7 +130,7 @@ namespace xivres {
 			const auto indices = this->indices();
 
 			std::vector<uint8_t> newData;
-			newData.resize(baseOffset + sizeof uint16_t * header.BlockCount * header.BlockMemberCount);
+			newData.resize(baseOffset + sizeof(uint16_t) * header.BlockCount * header.BlockMemberCount);
 			*reinterpret_cast<equipment_deformer_parameter_header*>(&newData[0]) = header;
 			const auto newIndices = util::span_cast<uint16_t>(newData, sizeof header, header.BlockCount);
 			const auto newBody = util::span_cast<uint16_t>(newData, baseOffset, size_t{1} * header.BlockCount * header.BlockMemberCount);
@@ -160,7 +160,7 @@ namespace xivres {
 					}
 				}
 			}
-			newData.resize(xivres::align<size_t>(baseOffset + newBodyIndex * sizeof uint16_t, 512).Alloc);
+			newData.resize(xivres::align<size_t>(baseOffset + newBodyIndex * sizeof(uint16_t), 512).Alloc);
 			m_data.swap(newData);
 		}
 	};

@@ -25,7 +25,7 @@ void xivres::standard_passthrough_packer::ensure_initialized() {
 
 	const auto size = m_stream->size();
 	const auto blockAlignment = align<uint32_t>(static_cast<uint32_t>(size), packed::MaxBlockDataSize);
-	const auto headerAlignment = align(sizeof packed::file_header + blockAlignment.Count * sizeof packed::standard_block_locator);
+	const auto headerAlignment = align(sizeof(packed::file_header) + blockAlignment.Count * sizeof(packed::standard_block_locator));
 
 	m_header.resize(headerAlignment.Alloc);
 	auto& header = *reinterpret_cast<packed::file_header*>(&m_header[0]);
@@ -37,11 +37,11 @@ void xivres::standard_passthrough_packer::ensure_initialized() {
 		.DecompressedSize = static_cast<uint32_t>(size),
 		.BlockCountOrVersion = blockAlignment.Count,
 	};
-	header.set_space_units((static_cast<size_t>(blockAlignment.Count) - 1) * packed::MaxBlockSize + sizeof packed::block_header + blockAlignment.Last);
+	header.set_space_units((static_cast<size_t>(blockAlignment.Count) - 1) * packed::MaxBlockSize + sizeof(packed::block_header) + blockAlignment.Last);
 
 	blockAlignment.iterate_chunks([&](uint32_t index, uint32_t offset, uint32_t size) {
 		locators[index].Offset = index == 0 ? 0 : locators[index - 1].Offset + locators[index - 1].BlockSize;
-		locators[index].BlockSize = static_cast<uint16_t>(align(sizeof packed::block_header + size));
+		locators[index].BlockSize = static_cast<uint16_t>(align(sizeof(packed::block_header) + size));
 		locators[index].DecompressedDataSize = static_cast<uint16_t>(size);
 	});
 }
@@ -72,9 +72,9 @@ std::streamsize xivres::standard_passthrough_packer::translate_read(std::streamo
 		relativeOffset -= i * packed::MaxBlockSize;
 
 		blockAlignment.iterate_chunks_breakable([&](uint32_t, uint32_t offset, uint32_t size) {
-			if (relativeOffset < sizeof packed::block_header) {
+			if (relativeOffset < sizeof(packed::block_header)) {
 				const auto header = packed::block_header{
-					.HeaderSize = sizeof packed::block_header,
+					.HeaderSize = sizeof(packed::block_header),
 					.Version = 0,
 					.CompressedSize = packed::block_header::CompressedSizeNotCompressed,
 					.DecompressedSize = static_cast<uint32_t>(size),
@@ -87,7 +87,7 @@ std::streamsize xivres::standard_passthrough_packer::translate_read(std::streamo
 
 				if (out.empty()) return false;
 			} else
-				relativeOffset -= sizeof packed::block_header;
+				relativeOffset -= sizeof(packed::block_header);
 
 			if (relativeOffset < size) {
 				const auto available = (std::min)(out.size_bytes(), static_cast<size_t>(size - relativeOffset));
@@ -99,7 +99,7 @@ std::streamsize xivres::standard_passthrough_packer::translate_read(std::streamo
 			} else
 				relativeOffset -= size;
 
-			if (const auto pad = align(sizeof packed::block_header + size).Pad; relativeOffset < pad) {
+			if (const auto pad = align(sizeof(packed::block_header) + size).Pad; relativeOffset < pad) {
 				const auto available = (std::min)(out.size_bytes(), static_cast<size_t>(pad - relativeOffset));
 				std::fill_n(out.begin(), available, 0);
 				out = out.subspan(static_cast<size_t>(available));
@@ -151,12 +151,12 @@ std::unique_ptr<xivres::stream> xivres::standard_compressing_packer::pack() {
 		return nullptr;
 
 	const auto entryHeaderLength = static_cast<uint16_t>(align(0
-		+ sizeof packed::file_header
-		+ sizeof packed::standard_block_locator * blockAlignment.Count
+		+ sizeof(packed::file_header)
+		+ sizeof(packed::standard_block_locator) * blockAlignment.Count
 	));
 	size_t entryBodyLength = 0;
 	for (const auto& blockData : blockDataList)
-		entryBodyLength += align(sizeof packed::block_header + blockData.Data.size());
+		entryBodyLength += align(sizeof(packed::block_header) + blockData.Data.size());
 
 	std::vector<uint8_t> result(entryHeaderLength + entryBodyLength);
 
@@ -176,7 +176,7 @@ std::unique_ptr<xivres::stream> xivres::standard_compressing_packer::pack() {
 		auto& blockData = blockDataList[index];
 
 		auto& header = *reinterpret_cast<packed::block_header*>(&*resultDataPtr);
-		header.HeaderSize = sizeof packed::block_header;
+		header.HeaderSize = sizeof(packed::block_header);
 		header.Version = 0;
 		header.CompressedSize = blockData.Deflated ? static_cast<uint32_t>(blockData.Data.size()) : packed::block_header::CompressedSizeNotCompressed;
 		header.DecompressedSize = length;

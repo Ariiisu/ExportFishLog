@@ -49,10 +49,10 @@ namespace mem
         }
 
         template <typename T, std::size_t size>
-        std::optional<T*> read(std::uintptr_t address)
+        std::optional<std::array<T, size>> read_buffer(std::uintptr_t address)
         {
-            T res[size]{};
-            if (!read_impl(address, &res, size))
+            std::array<T, size> res{};
+            if (!read_impl(address, reinterpret_cast<void*>(res.data()), size))
                 return std::nullopt;
 
             return res;

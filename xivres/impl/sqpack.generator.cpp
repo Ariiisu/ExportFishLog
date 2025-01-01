@@ -1,5 +1,4 @@
 #include "../include/xivres/sqpack.generator.h"
-#include "../include/xivres/path_spec.h"
 
 #include <fstream>
 #include <ranges>
@@ -226,26 +225,26 @@ static std::vector<uint8_t> export_index_file_data(
 	using namespace xivres;
 
 	std::vector<uint8_t> data;
-	data.reserve(sizeof sqpack::header
-		+ sizeof sqpack::sqindex::header
+	data.reserve(sizeof(sqpack::header)
+		+ sizeof(sqpack::sqindex::header)
 		+ std::span(fileSegment).size_bytes()
 		+ std::span(conflictSegment).size_bytes()
 		+ std::span(segment3).size_bytes()
 		+ std::span(folderSegment).size_bytes());
 
-	data.resize(sizeof sqpack::header + sizeof sqpack::sqindex::header);
+	data.resize(sizeof(sqpack::header) + sizeof(sqpack::sqindex::header));
 	auto& header1 = *reinterpret_cast<sqpack::header*>(&data[0]);
-	memcpy(header1.Signature, sqpack::header::Signature_Value, sizeof sqpack::header::Signature_Value);
-	header1.HeaderSize = sizeof sqpack::header;
+	memcpy(header1.Signature, sqpack::header::Signature_Value, sizeof(sqpack::header::Signature_Value));
+	header1.HeaderSize = sizeof(sqpack::header);
 	header1.Unknown1 = sqpack::header::Unknown1_Value;
 	header1.Type = sqpack::file_type::SqIndex;
 	header1.Unknown2 = sqpack::header::Unknown2_Value;
 	if (strict)
 		header1.Sha1.set_from_span(reinterpret_cast<char*>(&header1), offsetof(sqpack::header, Sha1));
 
-	auto& header2 = *reinterpret_cast<sqpack::sqindex::header*>(&data[sizeof sqpack::header]);
+	auto& header2 = *reinterpret_cast<sqpack::sqindex::header*>(&data[sizeof(sqpack::header)]);
 	std::sort(fileSegment.begin(), fileSegment.end());
-	header2.HeaderSize = sizeof sqpack::sqindex::header;
+	header2.HeaderSize = sizeof(sqpack::sqindex::header);
 	header2.Type = TSqIndex;
 	header2.HashLocatorSegment.Count = 1;
 	header2.HashLocatorSegment.Offset = header1.HeaderSize + header2.HeaderSize;
@@ -425,7 +424,7 @@ xivres::sqpack::generator::sqpack_views xivres::sqpack::generator::export_to_vie
 		entry->Provider = std::make_shared<hotswap_packed_stream>(pathSpec, entry->EntrySize, std::move(entry->Provider));
 
 		if (dataSubheaders.empty() ||
-			sizeof header + sizeof sqdata::header + dataSubheaders.back().DataSize + entry->EntrySize > dataSubheaders.back().MaxFileSize) {
+			sizeof header + sizeof(sqdata::header) + dataSubheaders.back().DataSize + entry->EntrySize > dataSubheaders.back().MaxFileSize) {
 			if (strict && !dataSubheaders.empty()) {
 				util::hash_sha1 sha1;
 				for (auto j = dataEntryRanges.back().first, j_ = j + dataEntryRanges.back().second; j < j_; ++j) {
@@ -443,7 +442,7 @@ xivres::sqpack::generator::sqpack_views xivres::sqpack::generator::export_to_vie
 				dataSubheaders.back().Sha1.set_from_span(reinterpret_cast<char*>(&dataSubheaders.back()), offsetof(sqdata::header, Sha1));
 			}
 			dataSubheaders.emplace_back(sqdata::header{
-				.HeaderSize = sizeof sqdata::header,
+				.HeaderSize = sizeof(sqdata::header),
 				.Unknown1 = sqdata::header::Unknown1_Value,
 				.DataSize = 0,
 				.SpanIndex = static_cast<uint32_t>(dataSubheaders.size()),
@@ -452,7 +451,7 @@ xivres::sqpack::generator::sqpack_views xivres::sqpack::generator::export_to_vie
 			dataEntryRanges.emplace_back(i, 0);
 		}
 
-		entry->Locator = {static_cast<uint32_t>(dataSubheaders.size() - 1), sizeof header + sizeof sqdata::header + dataSubheaders.back().DataSize};
+		entry->Locator = {static_cast<uint32_t>(dataSubheaders.size() - 1), sizeof header + sizeof(sqdata::header) + dataSubheaders.back().DataSize};
 
 		dataSubheaders.back().DataSize = dataSubheaders.back().DataSize + entry->EntrySize;
 		dataEntryRanges.back().second++;
@@ -529,7 +528,7 @@ xivres::sqpack::generator::sqpack_views xivres::sqpack::generator::export_to_vie
 		.ConflictIndex = sqindex::full_hash_with_text_locator::EndOfList,
 	});
 
-	memcpy(dataHeader.Signature, header::Signature_Value, sizeof header::Signature_Value);
+	memcpy(dataHeader.Signature, header::Signature_Value, sizeof(header::Signature_Value));
 	dataHeader.HeaderSize = sizeof header;
 	dataHeader.Unknown1 = header::Unknown1_Value;
 	dataHeader.Type = file_type::SqData;
@@ -549,7 +548,7 @@ xivres::sqpack::generator::sqpack_views xivres::sqpack::generator::export_to_vie
 
 void xivres::sqpack::generator::export_to_files(const std::filesystem::path& dir, bool strict, size_t cores) {
 	header dataHeader{};
-	memcpy(dataHeader.Signature, header::Signature_Value, sizeof header::Signature_Value);
+	memcpy(dataHeader.Signature, header::Signature_Value, sizeof(header::Signature_Value));
 	dataHeader.HeaderSize = sizeof header;
 	dataHeader.Unknown1 = header::Unknown1_Value;
 	dataHeader.Type = file_type::SqData;
@@ -603,18 +602,18 @@ void xivres::sqpack::generator::export_to_files(const std::filesystem::path& dir
 			const auto entrySize = provider->size();
 
 			if (dataSubheaders.empty() ||
-				sizeof header + sizeof sqdata::header + dataSubheaders.back().DataSize + entrySize > dataSubheaders.back().MaxFileSize) {
+				sizeof header + sizeof(sqdata::header) + dataSubheaders.back().DataSize + entrySize > dataSubheaders.back().MaxFileSize) {
 				if (!dataSubheaders.empty() && dataFile.is_open()) {
 					if (strict) {
 						std::vector<char> buf(65536);
 						util::hash_sha1 sha1;
-						dataFile.seekg(sizeof header + sizeof sqdata::header, std::ios::beg);
+						dataFile.seekg(sizeof header + sizeof(sqdata::header), std::ios::beg);
 						align<uint64_t>(dataSubheaders.back().DataSize, buf.size()).iterate_chunks([&](uint64_t index, uint64_t offset, uint64_t size) {
 							dataFile.read(&buf[0], static_cast<size_t>(size));
 							if (!dataFile)
 								throw std::runtime_error("Failed to read from output data file.");
 							sha1.process_bytes(&buf[0], static_cast<size_t>(size));
-						}, sizeof header + sizeof sqdata::header);
+						}, sizeof header + sizeof(sqdata::header));
 
 						sha1.get_digest_bytes(dataSubheaders.back().DataSha1.Value);
 						dataSubheaders.back().Sha1.set_from_span(reinterpret_cast<char*>(&dataSubheaders.back()), offsetof(sqdata::header, Sha1));
@@ -628,7 +627,7 @@ void xivres::sqpack::generator::export_to_files(const std::filesystem::path& dir
 
 				dataFile.open(dir / std::format("{}.win32.dat{}", DatName, dataSubheaders.size()), std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
 				dataSubheaders.emplace_back(sqdata::header{
-					.HeaderSize = sizeof sqdata::header,
+					.HeaderSize = sizeof(sqdata::header),
 					.Unknown1 = sqdata::header::Unknown1_Value,
 					.DataSize = 0,
 					.SpanIndex = static_cast<uint32_t>(dataSubheaders.size()),
@@ -636,7 +635,7 @@ void xivres::sqpack::generator::export_to_files(const std::filesystem::path& dir
 				});
 			}
 
-			entry.Locator = {static_cast<uint32_t>(dataSubheaders.size() - 1), sizeof header + sizeof sqdata::header + dataSubheaders.back().DataSize};
+			entry.Locator = {static_cast<uint32_t>(dataSubheaders.size() - 1), sizeof header + sizeof(sqdata::header) + dataSubheaders.back().DataSize};
 			dataFile.seekg(static_cast<std::streamoff>(entry.Locator.offset()), std::ios::beg);
 			dataFile.write(&data[0], static_cast<std::streamsize>(data.size()));
 			if (!dataFile)
@@ -649,13 +648,13 @@ void xivres::sqpack::generator::export_to_files(const std::filesystem::path& dir
 			if (strict) {
 				std::vector<char> buf(65536);
 				util::hash_sha1 sha1;
-				dataFile.seekg(sizeof header + sizeof sqdata::header, std::ios::beg);
+				dataFile.seekg(sizeof header + sizeof(sqdata::header), std::ios::beg);
 				align<uint64_t>(dataSubheaders.back().DataSize, buf.size()).iterate_chunks([&](uint64_t index, uint64_t offset, uint64_t size) {
 					dataFile.read(&buf[0], static_cast<size_t>(size));
 					if (!dataFile)
 						throw std::runtime_error("Failed to read from output data file.");
 					sha1.process_bytes(&buf[0], static_cast<size_t>(size));
-				}, sizeof header + sizeof sqdata::header);
+				}, sizeof header + sizeof(sqdata::header));
 
 				sha1.get_digest_bytes(dataSubheaders.back().DataSha1.Value);
 				dataSubheaders.back().Sha1.set_from_span(reinterpret_cast<char*>(&dataSubheaders.back()), offsetof(sqdata::header, Sha1));
@@ -736,7 +735,7 @@ std::unique_ptr<xivres::default_base_stream> xivres::sqpack::generator::get(cons
 		return std::make_unique<unpacked_stream>(it->second->Provider);
 	if (const auto it = m_fullEntries.find(pathSpec); it != m_fullEntries.end())
 		return std::make_unique<unpacked_stream>(it->second->Provider);
-	throw std::out_of_range(std::format("path_spec not found"));
+	throw std::out_of_range(std::format("path_spec({}) not found", pathSpec));
 }
 
 std::vector<xivres::path_spec> xivres::sqpack::generator::all_path_spec() const {

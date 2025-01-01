@@ -4,7 +4,7 @@
 
 #include <set>
 
-#include "../include/xivres/util.unicode.h"
+#include "include/xivres/util.unicode.h"
 
 #ifdef _WIN32
 #include <minizip/iowin32.h>
@@ -645,8 +645,10 @@ void xivres::textools::simple_ttmp2_writer::add_file(const std::string& path, co
 					const auto deflated = std::span(buffer2).subspan(0, buffer2.size() - m_zstream->avail_out);
 
 					util::thread_pool::pool::throw_if_current_task_cancelled();
-					if (const auto err = zipWriteInFileInZip(m_zf, &deflated[0], static_cast<uint32_t>(deflated.size())))
-						throw std::runtime_error(std::format("zipWriteInFileInZip error({})", err));
+					if (!deflated.empty()) {
+						if (const auto err = zipWriteInFileInZip(m_zf, &deflated[0], static_cast<uint32_t>(deflated.size())))
+							throw std::runtime_error(std::format("zipWriteInFileInZip error({})", err));
+					}
 				} while (m_zstream->avail_out == 0);
 			}
 		}

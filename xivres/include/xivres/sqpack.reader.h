@@ -20,11 +20,11 @@ namespace xivres::sqpack {
 				if (strictVerify) {
 					header().verify_or_throw(file_type::SqIndex);
 					index_header().verify_or_throw(sqindex::sqindex_type::Index);
-					if (index_header().HashLocatorSegment.Size % sizeof HashLocatorT)
+					if (index_header().HashLocatorSegment.Size % sizeof(HashLocatorT))
 						throw bad_data_error("HashLocators has an invalid size alignment");
-					if (index_header().TextLocatorSegment.Size % sizeof TextLocatorT)
+					if (index_header().TextLocatorSegment.Size % sizeof(TextLocatorT))
 						throw bad_data_error("TextLocators has an invalid size alignment");
-					if (index_header().UnknownSegment3.Size % sizeof sqindex::segment_3_entry)
+					if (index_header().UnknownSegment3.Size % sizeof(sqindex::segment_3_entry))
 						throw bad_data_error("Segment3 has an invalid size alignment");
 					index_header().HashLocatorSegment.Sha1.verify(hash_locators(), "HashLocatorSegment has invalid data SHA-1");
 					index_header().TextLocatorSegment.Sha1.verify(text_locators(), "TextLocatorSegment has invalid data SHA-1");
