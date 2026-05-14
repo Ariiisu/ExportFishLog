@@ -31,7 +31,6 @@ jobs:
       
     - name: Prepare artifacts
       run: |
-        cp config.toml .\build\${{env.BUILD_TYPE}} 
         del .\build\${{env.BUILD_TYPE}}\xivres.lib
         mkdir .\build\pdb
         move .\build\${{env.BUILD_TYPE}}\*.pdb .\build\pdb\
