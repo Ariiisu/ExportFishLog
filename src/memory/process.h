@@ -84,5 +84,20 @@ namespace mem
         {
             return _pid;
         }
+
+        const std::uint8_t* image_data() const noexcept
+        {
+            return _process_bytes.data();
+        }
+
+        std::size_t image_size() const noexcept
+        {
+            return _process_bytes.size();
+        }
+
+        std::uintptr_t base_address() const noexcept
+        {
+            return _base_address;
+        }
     };
 }

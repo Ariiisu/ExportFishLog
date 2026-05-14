@@ -26,7 +26,7 @@ endif()
 
 project(ExportFishLog
 	VERSION
-		1.8.4
+		1.8.5
 )
 
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
@@ -35,8 +35,8 @@ if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
 	if(POLICY CMP0135)
 		cmake_policy(SET CMP0135 NEW)
 	endif()
-	message(STATUS "Fetching vcpkg (2024.09.30)...")
-	FetchContent_Declare(vcpkg URL "https://github.com/microsoft/vcpkg/archive/refs/tags/2024.09.30.tar.gz")
+	message(STATUS "Fetching vcpkg (2025.12.12)...")
+	FetchContent_Declare(vcpkg URL "https://github.com/microsoft/vcpkg/archive/refs/tags/2025.12.12.tar.gz")
 	FetchContent_GetProperties(vcpkg)
 	if(NOT vcpkg_POPULATED)
 		FetchContent_Populate(vcpkg)
@@ -45,15 +45,6 @@ if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
 endif()
 
 include(FetchContent)
-
-message(STATUS "Fetching tomlplusplus (dbc4bcecf20b7c45fe9d39ca2aa4b28c35e4e83a)...")
-FetchContent_Declare(tomlplusplus SYSTEM
-	GIT_REPOSITORY
-		"https://github.com/marzer/tomlplusplus"
-	GIT_TAG
-		dbc4bcecf20b7c45fe9d39ca2aa4b28c35e4e83a
-)
-FetchContent_MakeAvailable(tomlplusplus)
 
 message(STATUS "Fetching glaze (e7d2da91e38182885d602d792d6b1e24f24185a9)...")
 FetchContent_Declare(glaze SYSTEM
@@ -81,6 +72,8 @@ find_package(zlib REQUIRED)
 find_package(unofficial-minizip REQUIRED)
 
 find_package(nlohmann_json REQUIRED)
+
+find_package(Zydis REQUIRED)
 
 # Target: xivres
 set(CMKR_TARGET xivres)
@@ -196,14 +189,14 @@ target_link_libraries(xivres PUBLIC
 
 # Target: ExportFishLog
 set(ExportFishLog_SOURCES
-	"src/data/config.cpp"
 	"src/data/game.cpp"
 	"src/main.cpp"
+	"src/memory/heuristic.cpp"
 	"src/memory/pattern.cpp"
 	"src/memory/process.cpp"
 	"src/data/json.hpp"
-	"src/data/config.h"
 	"src/data/game.h"
+	"src/memory/heuristic.h"
 	"src/memory/pattern.h"
 	"src/memory/process.h"
 	cmake.toml
@@ -239,11 +232,11 @@ target_include_directories(ExportFishLog PRIVATE
 )
 
 target_link_libraries(ExportFishLog PRIVATE
-	tomlplusplus::tomlplusplus
 	fmt::fmt
 	glaze::glaze
 	magic_enum::magic_enum
 	xivres::xivres
+	Zydis::Zydis
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)

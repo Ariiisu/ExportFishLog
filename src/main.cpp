@@ -1,4 +1,3 @@
-#include "data/config.h"
 #include "memory/process.h"
 #include "data/game.h"
 #include "data/json.hpp"
@@ -98,7 +97,7 @@ static std::vector<DWORD> get_ffxiv_processes()
     return result;
 }
 
-static void dump_data(pastry_fish::Main& pastry_fish_struct, const DWORD pid)
+static void dump_data(pastry_fish::Main pastry_fish_struct, const DWORD pid)
 {
     const auto process = mem::process(pid);
 
@@ -109,29 +108,15 @@ static void dump_data(pastry_fish::Main& pastry_fish_struct, const DWORD pid)
         data.setup_excel_sheet();
         data.setup_address();
 
-        std::once_flag flag{};
-
-        while (!data.is_valid())
-        {
-            std::call_once(flag,
-                           [pid]
-                           {
-                               print(stdout, fmt::emphasis::bold | fg(fmt::color::red), "[x] PID: {}, 检测不到本地玩家, 数据将会在检测到后导出\n", pid);
-                           });
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
         pastry_fish_struct.completed = data.get_unlocked_fishes();
 
-        const auto name = data.get_localplayer_name();
-        const auto content_id = data.get_localplayer_content_id();
-        const auto file_name = fmt::format("result_{}_{:x}.json", name, content_id);
+        const auto file_name = fmt::format("result_{}.json", pid);
         if (glz::write_file_json(pastry_fish_struct, file_name, std::string {}))
         {
             throw std::runtime_error(fmt::format("写入文件时出错"));
         }
 
-        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] {0} 的数据已写入到 {1} 里.\n", name, file_name);
+        print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green), "[+] PID: {0} 的数据已写入到 {1} 里.\n", pid, file_name);
     }
     catch (std::exception& ex)
     {
@@ -164,8 +149,6 @@ int main()
 
             return 1;
         }
-
-        data::config.setup();
 
         pastry_fish::Main pastry_fish_struct{};
 

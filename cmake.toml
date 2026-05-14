@@ -1,21 +1,18 @@
 # Reference: https://build-cpp.github.io/cmkr/cmake-toml
 [project]
 name = "ExportFishLog"
-version = "1.8.5"
+version = "1.9.0"
 
 [vcpkg]
-version = "2024.09.30"
-packages = ["fmt", "zlib", "nlohmann-json", "srell", "minizip"]
+version = "2025.12.12"
+packages = ["fmt", "zlib", "nlohmann-json", "srell", "minizip", "zydis"]
 
 [find-package]
 fmt = {}
 zlib = {}
 unofficial-minizip = {}
 nlohmann_json = {}
-
-[fetch-content.tomlplusplus]
-git = "https://github.com/marzer/tomlplusplus"
-tag = "dbc4bcecf20b7c45fe9d39ca2aa4b28c35e4e83a"
+Zydis = {}
 
 [fetch-content.glaze]
 git = "https://github.com/stephenberry/glaze"
@@ -44,5 +41,5 @@ sources = ["src/**.cpp", "src/**.hpp", "src/**.h"]
 include-directories = ["xivres/include/"]
 compile-features = ["cxx_std_23"]
 windows.compile-definitions = ["NOMINMAX"]
-link-libraries = ["tomlplusplus::tomlplusplus", "fmt::fmt", "glaze::glaze", "magic_enum::magic_enum", "xivres::xivres"]
+link-libraries = ["fmt::fmt", "glaze::glaze", "magic_enum::magic_enum", "xivres::xivres", "Zydis::Zydis"]
 msvc.private-compile-options = ["/permissive-", "/w14640", "/EHsc", "/MP", "/utf-8"]
