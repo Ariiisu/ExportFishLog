@@ -27,18 +27,18 @@ cmake-before = """
 find_path(SRELL_INCLUDE_DIRS "srell.hpp")
 """
 type = "static"
-sources = ["xivres/impl/**.cpp", "xivres/include/**.h"]
-include-directories = ["${SRELL_INCLUDE_DIRS}"]
+sources = ["xivres/xivres/impl/**.cpp", ]
+include-directories = ["${SRELL_INCLUDE_DIRS}", "xivres/xivres/", "xivres/xivres/include"]
 alias = "xivres::xivres"
 compile-features = ["cxx_std_23"]
 windows.compile-definitions = ["NOMINMAX"]
 link-libraries = ["unofficial::minizip::minizip", "ZLIB::ZLIB", "nlohmann_json::nlohmann_json"]
-msvc.private-compile-options = ["/permissive-", "/w14640", "/EHsc", "/MP", "/utf-8"]
+msvc.private-compile-options = ["/permissive-", "/w14640", "/EHsc", "/MP", "/utf-8", "/D UNICODE"]
 
 [target.ExportFishLog]
 type = "executable"
 sources = ["src/**.cpp", "src/**.hpp", "src/**.h"]
-include-directories = ["xivres/include/"]
+include-directories = ["xivres/xivres/", "xivres/xivres/include"]
 compile-features = ["cxx_std_23"]
 windows.compile-definitions = ["NOMINMAX"]
 link-libraries = ["fmt::fmt", "glaze::glaze", "magic_enum::magic_enum", "xivres::xivres", "Zydis::Zydis"]

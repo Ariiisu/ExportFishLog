@@ -26,7 +26,7 @@ endif()
 
 project(ExportFishLog
 	VERSION
-		1.8.5
+		1.9.0
 )
 
 if(CMKR_ROOT_PROJECT AND NOT CMKR_DISABLE_VCPKG)
@@ -80,74 +80,40 @@ set(CMKR_TARGET xivres)
 find_path(SRELL_INCLUDE_DIRS "srell.hpp")
 
 set(xivres_SOURCES
-	"xivres/impl/TinySha1.cpp"
-	"xivres/impl/common.cpp"
-	"xivres/impl/excel.cpp"
-	"xivres/impl/excel.type2gen.cpp"
-	"xivres/impl/fontdata.cpp"
-	"xivres/impl/installation.cpp"
-	"xivres/impl/packed_stream.cpp"
-	"xivres/impl/packed_stream.hotswap.cpp"
-	"xivres/impl/packed_stream.model.cpp"
-	"xivres/impl/packed_stream.placeholder.cpp"
-	"xivres/impl/packed_stream.standard.cpp"
-	"xivres/impl/path_spec.cpp"
-	"xivres/impl/sound.cpp"
-	"xivres/impl/sqpack.cpp"
-	"xivres/impl/sqpack.generator.cpp"
-	"xivres/impl/sqpack.reader.cpp"
-	"xivres/impl/stream.cpp"
-	"xivres/impl/unpacked_stream.cpp"
-	"xivres/impl/unpacked_stream.model.cpp"
-	"xivres/impl/unpacked_stream.placeholder.cpp"
-	"xivres/impl/unpacked_stream.standard.cpp"
-	"xivres/impl/unpacked_stream.texture.cpp"
-	"xivres/impl/util.bitmap_copy.cpp"
-	"xivres/impl/util.dxt.cpp"
-	"xivres/impl/util.thread_pool.cpp"
-	"xivres/impl/util.unicode.cpp"
-	"xivres/impl/util.zlib_wrapper.cpp"
-	"xivres/impl/xivstring.cpp"
-	"xivres/include/xivres/common.h"
-	"xivres/include/xivres/equipment_and_gimmick_parameter.h"
-	"xivres/include/xivres/equipment_deformer_parameter.h"
-	"xivres/include/xivres/ex_skeleton_table.h"
-	"xivres/include/xivres/excel.h"
-	"xivres/include/xivres/excel.type2gen.h"
-	"xivres/include/xivres/fontdata.h"
-	"xivres/include/xivres/image_change_data.h"
-	"xivres/include/xivres/installation.h"
-	"xivres/include/xivres/model.h"
-	"xivres/include/xivres/packed_stream.h"
-	"xivres/include/xivres/packed_stream.hotswap.h"
-	"xivres/include/xivres/packed_stream.model.h"
-	"xivres/include/xivres/packed_stream.placeholder.h"
-	"xivres/include/xivres/packed_stream.standard.h"
-	"xivres/include/xivres/packed_stream.texture.h"
-	"xivres/include/xivres/path_spec.h"
-	"xivres/include/xivres/sound.h"
-	"xivres/include/xivres/sqpack.generator.h"
-	"xivres/include/xivres/sqpack.h"
-	"xivres/include/xivres/sqpack.reader.h"
-	"xivres/include/xivres/stream.h"
-	"xivres/include/xivres/unpacked_stream.h"
-	"xivres/include/xivres/unpacked_stream.model.h"
-	"xivres/include/xivres/unpacked_stream.placeholder.h"
-	"xivres/include/xivres/unpacked_stream.standard.h"
-	"xivres/include/xivres/unpacked_stream.texture.h"
-	"xivres/include/xivres/util.bitmap_copy.h"
-	"xivres/include/xivres/util.byte_order.h"
-	"xivres/include/xivres/util.dxt.h"
-	"xivres/include/xivres/util.h"
-	"xivres/include/xivres/util.listener_manager.h"
-	"xivres/include/xivres/util.on_dtor.h"
-	"xivres/include/xivres/util.pixel_formats.h"
-	"xivres/include/xivres/util.sha1.h"
-	"xivres/include/xivres/util.span_cast.h"
-	"xivres/include/xivres/util.thread_pool.h"
-	"xivres/include/xivres/util.unicode.h"
-	"xivres/include/xivres/util.zlib_wrapper.h"
-	"xivres/include/xivres/xivstring.h"
+	"xivres/xivres/impl/TinySha1.cpp"
+	"xivres/xivres/impl/common.cpp"
+	"xivres/xivres/impl/excel.cpp"
+	"xivres/xivres/impl/excel.type2gen.cpp"
+	"xivres/xivres/impl/fontdata.cpp"
+	"xivres/xivres/impl/installation.cpp"
+	"xivres/xivres/impl/packed_stream.cpp"
+	"xivres/xivres/impl/packed_stream.hotswap.cpp"
+	"xivres/xivres/impl/packed_stream.model.cpp"
+	"xivres/xivres/impl/packed_stream.placeholder.cpp"
+	"xivres/xivres/impl/packed_stream.standard.cpp"
+	"xivres/xivres/impl/packed_stream.texture.cpp"
+	"xivres/xivres/impl/path_spec.cpp"
+	"xivres/xivres/impl/sound.cpp"
+	"xivres/xivres/impl/sqpack.cpp"
+	"xivres/xivres/impl/sqpack.generator.cpp"
+	"xivres/xivres/impl/sqpack.reader.cpp"
+	"xivres/xivres/impl/stream.cpp"
+	"xivres/xivres/impl/textools.cpp"
+	"xivres/xivres/impl/texture.cpp"
+	"xivres/xivres/impl/texture.mipmap_stream.cpp"
+	"xivres/xivres/impl/texture.preview.cpp"
+	"xivres/xivres/impl/texture.stream.cpp"
+	"xivres/xivres/impl/unpacked_stream.cpp"
+	"xivres/xivres/impl/unpacked_stream.model.cpp"
+	"xivres/xivres/impl/unpacked_stream.placeholder.cpp"
+	"xivres/xivres/impl/unpacked_stream.standard.cpp"
+	"xivres/xivres/impl/unpacked_stream.texture.cpp"
+	"xivres/xivres/impl/util.bitmap_copy.cpp"
+	"xivres/xivres/impl/util.dxt.cpp"
+	"xivres/xivres/impl/util.thread_pool.cpp"
+	"xivres/xivres/impl/util.unicode.cpp"
+	"xivres/xivres/impl/util.zlib_wrapper.cpp"
+	"xivres/xivres/impl/xivstring.cpp"
 	cmake.toml
 )
 
@@ -174,11 +140,14 @@ if(MSVC) # msvc
 		"/EHsc"
 		"/MP"
 		"/utf-8"
+		"/D UNICODE"
 	)
 endif()
 
 target_include_directories(xivres PUBLIC
 	${SRELL_INCLUDE_DIRS}
+	"xivres/xivres/"
+	"xivres/xivres/include"
 )
 
 target_link_libraries(xivres PUBLIC
@@ -228,7 +197,8 @@ if(MSVC) # msvc
 endif()
 
 target_include_directories(ExportFishLog PRIVATE
-	"xivres/include/"
+	"xivres/xivres/"
+	"xivres/xivres/include"
 )
 
 target_link_libraries(ExportFishLog PRIVATE
