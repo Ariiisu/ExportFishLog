@@ -80,6 +80,7 @@ set(CMKR_TARGET xivres)
 find_path(SRELL_INCLUDE_DIRS "srell.hpp")
 
 set(xivres_SOURCES
+	"xivres/xivres/impl/TinySha1.cpp"
 	"xivres/xivres/impl/common.cpp"
 	"xivres/xivres/impl/excel.cpp"
 	"xivres/xivres/impl/excel.type2gen.cpp"
