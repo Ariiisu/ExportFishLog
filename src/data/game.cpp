@@ -15,8 +15,8 @@ void data::game::setup_address()
     _spear_fishlog_address = fishlog_pair->spear_fishlog;
 
     print(stdout, fmt::emphasis::bold | fg(fmt::color::light_green),
-          "[+] PID: {}, 所需地址已找到 (fishlog=0x{:X}, spear=0x{:X})\n",
-          _process.get_pid(), _fishlog_address, _spear_fishlog_address);
+          "[+] PID: {}, 所需地址已找到 (fishlog=ffxiv_dx11.exe+0x{:X}, spear=ffxiv_dx11.exe+0x{:X})\n",
+          _process.get_pid(), _fishlog_address - _process.base_address(), _spear_fishlog_address - _process.base_address());
 }
 
 static std::once_flag once_flag{};

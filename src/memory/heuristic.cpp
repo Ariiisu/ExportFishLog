@@ -11,6 +11,8 @@
 
 namespace
 {
+    // ---- PE view -----------------------------------------------------------
+
     struct section_range
     {
         std::uint32_t begin_rva;
@@ -28,12 +30,21 @@ namespace
         std::size_t image_size;
         const IMAGE_NT_HEADERS64* nt;
         section_range text;
-        section_range data;
+        std::vector<section_range> data; // multiple .data segments are allowed
         const IMAGE_DATA_DIRECTORY* exception_dir;
 
         bool in_bounds(std::uint32_t rva, std::size_t need) const noexcept
         {
             return static_cast<std::size_t>(rva) + need <= image_size;
+        }
+
+        bool in_data(std::uint64_t va_or_rva) const noexcept
+        {
+            if (va_or_rva > 0xFFFFFFFFu) return false;
+            const auto rva = static_cast<std::uint32_t>(va_or_rva);
+            for (const auto& d : data)
+                if (d.contains(rva)) return true;
+            return false;
         }
     };
 
@@ -56,11 +67,11 @@ namespace
         if (nt->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC)
             return false;
 
-        out.image      = image;
-        out.image_size = image_size;
-        out.nt         = nt;
-        out.text       = {};
-        out.data       = {};
+        out.image         = image;
+        out.image_size    = image_size;
+        out.nt            = nt;
+        out.text          = {};
+        out.data.clear();
         out.exception_dir = &nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];
 
         const auto* sections = IMAGE_FIRST_SECTION(nt);
@@ -74,10 +85,10 @@ namespace
             if (std::strncmp(name, ".text", IMAGE_SIZEOF_SHORT_NAME) == 0)
                 out.text = r;
             else if (std::strncmp(name, ".data", IMAGE_SIZEOF_SHORT_NAME) == 0)
-                out.data = r;
+                out.data.push_back(r);
         }
 
-        if (out.text.end_rva == 0 || out.data.end_rva == 0)
+        if (out.text.end_rva == 0 || out.data.empty())
             return false;
         if (out.exception_dir->Size == 0 || out.exception_dir->VirtualAddress == 0)
             return false;
@@ -85,180 +96,7 @@ namespace
         return true;
     }
 
-    bool is_low_byte_reg(ZydisRegister r) noexcept
-    {
-        switch (r)
-        {
-            case ZYDIS_REGISTER_AL:
-            case ZYDIS_REGISTER_CL:
-            case ZYDIS_REGISTER_DL:
-            case ZYDIS_REGISTER_BL:
-            case ZYDIS_REGISTER_SPL:
-            case ZYDIS_REGISTER_BPL:
-            case ZYDIS_REGISTER_SIL:
-            case ZYDIS_REGISTER_DIL:
-            case ZYDIS_REGISTER_R8B:
-            case ZYDIS_REGISTER_R9B:
-            case ZYDIS_REGISTER_R10B:
-            case ZYDIS_REGISTER_R11B:
-            case ZYDIS_REGISTER_R12B:
-            case ZYDIS_REGISTER_R13B:
-            case ZYDIS_REGISTER_R14B:
-            case ZYDIS_REGISTER_R15B:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    struct decoded
-    {
-        ZydisDecodedInstruction insn;
-        std::array<ZydisDecodedOperand, ZYDIS_MAX_OPERAND_COUNT> ops;
-        std::uint32_t rva;
-    };
-
-    // Resolve a LEA r64, [rip+disp32] to its target RVA (only if target is in .data).
-    // Returns the target RVA and the destination register on success, or 0/NONE on failure.
-    struct lea_anchor
-    {
-        std::uint32_t target_rva;
-        ZydisRegister dst_reg;
-    };
-
-    std::optional<lea_anchor> resolve_lea_data_target(const decoded& lea, const pe_view& pe)
-    {
-        if (lea.insn.mnemonic != ZYDIS_MNEMONIC_LEA) return std::nullopt;
-        if (lea.ops[0].type != ZYDIS_OPERAND_TYPE_REGISTER) return std::nullopt;
-        if (lea.ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY) return std::nullopt;
-        if (lea.ops[1].mem.base != ZYDIS_REGISTER_RIP) return std::nullopt;
-
-        ZyanU64 abs = 0;
-        if (ZydisCalcAbsoluteAddress(&lea.insn, &lea.ops[1], lea.rva, &abs) != ZYAN_STATUS_SUCCESS)
-            return std::nullopt;
-        if (abs > 0xFFFFFFFFu) return std::nullopt;
-        const auto target = static_cast<std::uint32_t>(abs);
-        if (!pe.data.contains(target)) return std::nullopt;
-
-        return lea_anchor{target, lea.ops[0].reg.value};
-    }
-
-    // Check that MOVZX loads a byte from memory whose addressing uses the LEA's reg.
-    bool movzx_byte_uses(const decoded& mvz, ZydisRegister lea_reg)
-    {
-        if (mvz.insn.mnemonic != ZYDIS_MNEMONIC_MOVZX) return false;
-        if (mvz.ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY) return false;
-        if (mvz.ops[1].size != 8) return false; // byte load
-        return mvz.ops[1].mem.base == lea_reg || mvz.ops[1].mem.index == lea_reg;
-    }
-
-    // Arm A (MSVC bit-test idiom):
-    //   LEA r64, [rip+disp]; MOVZX r32, byte ptr [r+lea_reg]; SHL/SHR r32, cl; TEST r8, r8
-    bool match_arm_shift_test(const decoded& sft, const decoded& tst)
-    {
-        if (sft.insn.mnemonic != ZYDIS_MNEMONIC_SHL && sft.insn.mnemonic != ZYDIS_MNEMONIC_SHR) return false;
-        if (sft.ops[1].type != ZYDIS_OPERAND_TYPE_REGISTER) return false;
-        if (sft.ops[1].reg.value != ZYDIS_REGISTER_CL) return false;
-
-        if (tst.insn.mnemonic != ZYDIS_MNEMONIC_TEST) return false;
-        if (tst.ops[0].type != ZYDIS_OPERAND_TYPE_REGISTER) return false;
-        if (tst.ops[1].type != ZYDIS_OPERAND_TYPE_REGISTER) return false;
-        if (!is_low_byte_reg(tst.ops[0].reg.value)) return false;
-        if (!is_low_byte_reg(tst.ops[1].reg.value)) return false;
-        return true;
-    }
-
-    // Arm B (clang-cl bit-test idiom):
-    //   LEA r64, [rip+disp]; MOVZX r32, byte ptr [r+lea_reg]; BT r32, r32
-    // The BT instruction sets CF directly from the bit-test, so no shift+test pair.
-    bool match_arm_bt(const decoded& bt)
-    {
-        if (bt.insn.mnemonic != ZYDIS_MNEMONIC_BT) return false;
-        if (bt.ops[0].type != ZYDIS_OPERAND_TYPE_REGISTER) return false;
-        if (bt.ops[1].type != ZYDIS_OPERAND_TYPE_REGISTER) return false;
-        // Bit-base must be a 32-bit (or wider) reg, bit-offset must be a GPR — both true
-        // by construction here since we're already filtering to GPR/GPR.
-        return true;
-    }
-
-    // Try both arms against a sliding window. Returns the target RVA on match.
-    // `filled` is the current usable length of `w` (3 or 4).
-    std::uint32_t match_idiom(const std::array<decoded, 4>& w, std::size_t filled, const pe_view& pe)
-    {
-        if (filled < 3) return 0;
-
-        const auto anchor = resolve_lea_data_target(w[0], pe);
-        if (!anchor) return 0;
-
-        if (!movzx_byte_uses(w[1], anchor->dst_reg)) return 0;
-
-        // Arm B (clang BT, 3 insns): LEA -> MOVZX -> BT
-        if (match_arm_bt(w[2])) return anchor->target_rva;
-
-        // Arm A (MSVC shift+test, 4 insns): LEA -> MOVZX -> SHL/SHR -> TEST
-        if (filled >= 4 && match_arm_shift_test(w[2], w[3])) return anchor->target_rva;
-
-        return 0;
-    }
-
-    // Decode a single function range, push bit-test idiom hits into the map.
-    void scan_function(const pe_view& pe, const ZydisDecoder& decoder,
-                       std::uint32_t begin_rva, std::uint32_t end_rva,
-                       std::unordered_map<std::uint32_t, std::uint32_t>& hits)
-    {
-        if (end_rva <= begin_rva) return;
-        if (!pe.in_bounds(begin_rva, end_rva - begin_rva)) return;
-
-        const std::uint8_t* code = pe.image + begin_rva;
-        const std::size_t   total = end_rva - begin_rva;
-
-        std::array<decoded, 4> window{};
-        std::size_t filled = 0;
-        std::size_t off = 0;
-
-        while (off < total)
-        {
-            decoded next{};
-            const auto status = ZydisDecoderDecodeFull(
-                &decoder, code + off, total - off,
-                &next.insn, next.ops.data());
-
-            if (!ZYAN_SUCCESS(status))
-            {
-                // bad opcode — resync by skipping a byte, keep scanning
-                off += 1;
-                filled = 0;
-                continue;
-            }
-
-            next.rva = begin_rva + static_cast<std::uint32_t>(off);
-
-            if (filled < 4)
-            {
-                window[filled++] = next;
-            }
-            else
-            {
-                window[0] = window[1];
-                window[1] = window[2];
-                window[2] = window[3];
-                window[3] = next;
-            }
-
-            // Run the matcher whenever we have ≥ 3 instructions so we catch both the
-            // 3-insn BT arm and the 4-insn shift+test arm.
-            if (filled >= 3)
-            {
-                if (const auto target = match_idiom(window, filled, pe); target != 0)
-                {
-                    // de-dup: keep first occurrence per target (only need set membership)
-                    hits.emplace(target, window[0].rva);
-                }
-            }
-
-            off += next.insn.length;
-        }
-    }
+    // ---- Runtime function enumeration via .pdata --------------------------
 
     struct runtime_function
     {
@@ -274,11 +112,11 @@ namespace
         const auto size = pe.exception_dir->Size;
         if (!pe.in_bounds(rva, size)) return result;
 
-        // RUNTIME_FUNCTION on x64 is 3x DWORD: BeginAddress, EndAddress, UnwindData
+        // x64 RUNTIME_FUNCTION = 3x DWORD: BeginAddress, EndAddress, UnwindData.
         constexpr std::size_t entry_size = 12;
         const auto count = size / entry_size;
-
         const auto* base = pe.image + rva;
+
         auto read_entry = [&](std::size_t idx, std::uint32_t& b, std::uint32_t& e, std::uint32_t& u)
         {
             std::memcpy(&b, base + idx * entry_size + 0, sizeof(b));
@@ -286,13 +124,13 @@ namespace
             std::memcpy(&u, base + idx * entry_size + 8, sizeof(u));
         };
 
-        // UNWIND_INFO byte 0 layout: Version (bits 0-2) | Flags (bits 3-7).
-        // UNW_FLAG_CHAININFO == 0x04 within the Flags field, i.e. bit 5 of byte 0.
-        constexpr std::uint8_t unw_flag_chaininfo_byte0 = 0x20;
+        // UNWIND_INFO byte 0: low 3 bits version, high 5 bits flags.
+        // UNW_FLAG_CHAININFO == 4 → bit 5 of byte 0 == 0x20.
+        constexpr std::uint8_t unw_chaininfo_mask = 0x20;
         auto unwind_is_chained = [&](std::uint32_t unwind_rva) -> bool
         {
             if (!pe.in_bounds(unwind_rva, 1)) return false;
-            return (pe.image[unwind_rva] & unw_flag_chaininfo_byte0) != 0;
+            return (pe.image[unwind_rva] & unw_chaininfo_mask) != 0;
         };
 
         result.reserve(count);
@@ -307,10 +145,8 @@ namespace
                 continue;
             }
 
-            // Merge chained tail entries: when the next entry is physically adjacent
-            // and its UNWIND_INFO has UNW_FLAG_CHAININFO set, it's a continuation of
-            // the same logical function. Sliding-window matching needs to see them
-            // as one continuous instruction stream.
+            // Merge chained tail entries so the bit-test scanner sees a continuous
+            // instruction stream across the logical function.
             std::size_t j = i + 1;
             while (j < count)
             {
@@ -327,6 +163,245 @@ namespace
         }
         return result;
     }
+
+    // ---- Decoding helpers --------------------------------------------------
+
+    struct decoded
+    {
+        ZydisDecodedInstruction insn;
+        std::array<ZydisDecodedOperand, ZYDIS_MAX_OPERAND_COUNT> ops;
+        std::uint32_t rva;
+    };
+
+    bool decode_at(const ZydisDecoder& dec, const pe_view& pe,
+                   std::uint32_t rva, decoded& out)
+    {
+        if (!pe.in_bounds(rva, 1)) return false;
+        const auto status = ZydisDecoderDecodeFull(
+            &dec, pe.image + rva, pe.image_size - rva,
+            &out.insn, out.ops.data());
+        if (!ZYAN_SUCCESS(status)) return false;
+        out.rva = rva;
+        return true;
+    }
+
+    // Resolve LEA r64,[rip+disp32] → absolute RVA target. Returns 0 on failure.
+    std::uint32_t lea_rip_target(const decoded& lea)
+    {
+        if (lea.insn.mnemonic != ZYDIS_MNEMONIC_LEA) return 0;
+        if (lea.ops[0].type != ZYDIS_OPERAND_TYPE_REGISTER) return 0;
+        if (lea.ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY) return 0;
+        if (lea.ops[1].mem.base != ZYDIS_REGISTER_RIP) return 0;
+
+        ZyanU64 abs = 0;
+        if (ZydisCalcAbsoluteAddress(&lea.insn, &lea.ops[1], lea.rva, &abs) != ZYAN_STATUS_SUCCESS)
+            return 0;
+        if (abs > 0xFFFFFFFFu) return 0;
+        return static_cast<std::uint32_t>(abs);
+    }
+
+    // Get signed displacement of MOVZX's memory operand (0 for register-only addressing).
+    std::int64_t movzx_mem_disp(const decoded& mvz)
+    {
+        if (mvz.insn.mnemonic != ZYDIS_MNEMONIC_MOVZX) return 0;
+        if (mvz.ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY) return 0;
+        if (!mvz.ops[1].mem.disp.has_displacement) return 0;
+        return mvz.ops[1].mem.disp.value;
+    }
+
+    bool is_byte_movzx_mem(const decoded& mvz)
+    {
+        if (mvz.insn.mnemonic != ZYDIS_MNEMONIC_MOVZX) return false;
+        if (mvz.ops[1].type != ZYDIS_OPERAND_TYPE_MEMORY) return false;
+        return mvz.ops[1].size == 8; // byte source
+    }
+
+    bool is_low_byte_reg(ZydisRegister r) noexcept
+    {
+        switch (r)
+        {
+            case ZYDIS_REGISTER_AL: case ZYDIS_REGISTER_CL:
+            case ZYDIS_REGISTER_DL: case ZYDIS_REGISTER_BL:
+            case ZYDIS_REGISTER_SPL: case ZYDIS_REGISTER_BPL:
+            case ZYDIS_REGISTER_SIL: case ZYDIS_REGISTER_DIL:
+            case ZYDIS_REGISTER_R8B: case ZYDIS_REGISTER_R9B:
+            case ZYDIS_REGISTER_R10B: case ZYDIS_REGISTER_R11B:
+            case ZYDIS_REGISTER_R12B: case ZYDIS_REGISTER_R13B:
+            case ZYDIS_REGISTER_R14B: case ZYDIS_REGISTER_R15B:
+                return true;
+            default: return false;
+        }
+    }
+
+    // After the MOVZX-byte, did the code run a bit-test on the loaded byte?
+    // We accept any of the compiler-equivalent shapes:
+    //   TEST/AND/OR  byte_reg, byte_reg
+    //   BT           reg, reg
+    //   SHL/SHR ...,cl  →  TEST byte_reg, byte_reg
+    bool is_bit_test_consumer(const ZydisDecoder& dec, const pe_view& pe, std::uint32_t after_rva)
+    {
+        decoded a{};
+        if (!decode_at(dec, pe, after_rva, a)) return false;
+
+        const auto m = a.insn.mnemonic;
+        if (m == ZYDIS_MNEMONIC_TEST || m == ZYDIS_MNEMONIC_AND || m == ZYDIS_MNEMONIC_OR)
+        {
+            return a.ops[0].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                   a.ops[1].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                   is_low_byte_reg(a.ops[0].reg.value) &&
+                   is_low_byte_reg(a.ops[1].reg.value);
+        }
+        if (m == ZYDIS_MNEMONIC_BT)
+        {
+            return a.ops[0].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                   a.ops[1].type == ZYDIS_OPERAND_TYPE_REGISTER;
+        }
+        if (m == ZYDIS_MNEMONIC_SHL || m == ZYDIS_MNEMONIC_SHR)
+        {
+            decoded b{};
+            if (!decode_at(dec, pe, after_rva + a.insn.length, b)) return false;
+            return b.insn.mnemonic == ZYDIS_MNEMONIC_TEST &&
+                   b.ops[0].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                   b.ops[1].type == ZYDIS_OPERAND_TYPE_REGISTER &&
+                   is_low_byte_reg(b.ops[0].reg.value) &&
+                   is_low_byte_reg(b.ops[1].reg.value);
+        }
+        return false;
+    }
+
+    // ---- Spearfish detector ------------------------------------------------
+    //
+    // Game logic does:  spearId = id - 20000; bit-test caughtSpearfish[spearId>>3].
+    // The "-20000" magic is in the GAME (not the compiler), so it survives
+    // recompilation. We only need to find an instruction within the same
+    // function as the LEA that applies that constant adjustment to a register.
+    //
+    // Encoding variants we accept:
+    //   SUB  r32, 0x4E20
+    //   ADD  r32, 0xFFFFB1E0   (== -0x4E20 in 32-bit two's complement)
+    //   LEA  r32, [reg + 0xFFFFB1E0]   (== [reg - 0x4E20])
+
+    constexpr std::int32_t SPEAR_OFFSET = 20000;
+
+    bool applies_spear_offset(const decoded& d)
+    {
+        const auto m = d.insn.mnemonic;
+        const auto& op0 = d.ops[0];
+        const auto& op1 = d.ops[1];
+
+        if (m == ZYDIS_MNEMONIC_SUB && op0.type == ZYDIS_OPERAND_TYPE_REGISTER &&
+            op1.type == ZYDIS_OPERAND_TYPE_IMMEDIATE)
+        {
+            return static_cast<std::int32_t>(op1.imm.value.s) == SPEAR_OFFSET;
+        }
+        if (m == ZYDIS_MNEMONIC_ADD && op0.type == ZYDIS_OPERAND_TYPE_REGISTER &&
+            op1.type == ZYDIS_OPERAND_TYPE_IMMEDIATE)
+        {
+            return static_cast<std::int32_t>(op1.imm.value.s) == -SPEAR_OFFSET;
+        }
+        if (m == ZYDIS_MNEMONIC_LEA && op0.type == ZYDIS_OPERAND_TYPE_REGISTER &&
+            op1.type == ZYDIS_OPERAND_TYPE_MEMORY &&
+            op1.mem.disp.has_displacement)
+        {
+            return static_cast<std::int32_t>(op1.mem.disp.value) == -SPEAR_OFFSET;
+        }
+        return false;
+    }
+
+    // Linearly scan the function's instruction stream and decide whether the
+    // -20000 adjustment appears anywhere before the LEA. We do this once per
+    // callsite, but per-function we cache results so multiple LEAs in the same
+    // function only pay the cost once.
+    bool function_has_spear_adjust(const ZydisDecoder& dec, const pe_view& pe,
+                                   std::uint32_t fn_begin_rva, std::uint32_t fn_end_rva,
+                                   std::uint32_t lea_rva)
+    {
+        if (lea_rva <= fn_begin_rva || lea_rva > fn_end_rva) return false;
+
+        std::uint32_t rva = fn_begin_rva;
+        while (rva < lea_rva)
+        {
+            decoded d{};
+            if (!decode_at(dec, pe, rva, d))
+            {
+                rva += 1;
+                continue;
+            }
+            if (applies_spear_offset(d)) return true;
+            rva += d.insn.length;
+        }
+        return false;
+    }
+
+    // ---- Bit-test idiom scanner -------------------------------------------
+
+    struct table_info
+    {
+        std::vector<std::uint32_t> callsites;       // RVAs of the LEA instructions
+        std::uint32_t spear_callsite_count = 0;     // how many callsites apply -20000
+    };
+
+    void scan_function(const ZydisDecoder& dec, const pe_view& pe,
+                       std::uint32_t fn_begin_rva, std::uint32_t fn_end_rva,
+                       std::unordered_map<std::uint32_t, table_info>& tables)
+    {
+        if (fn_end_rva <= fn_begin_rva) return;
+        if (!pe.in_bounds(fn_begin_rva, fn_end_rva - fn_begin_rva)) return;
+
+        std::uint32_t rva = fn_begin_rva;
+        while (rva < fn_end_rva)
+        {
+            decoded lea{};
+            if (!decode_at(dec, pe, rva, lea))
+            {
+                rva += 1;
+                continue;
+            }
+
+            const std::uint32_t step = lea.insn.length;
+
+            // Anchor: LEA r64, [rip+disp32]  with target inside .data.
+            const std::uint32_t lea_target = lea_rip_target(lea);
+            if (lea_target == 0 || !pe.in_data(lea_target))
+            {
+                rva += step;
+                continue;
+            }
+
+            decoded mvz{};
+            if (!decode_at(dec, pe, rva + lea.insn.length, mvz) ||
+                !is_byte_movzx_mem(mvz))
+            {
+                rva += step;
+                continue;
+            }
+
+            const std::int64_t mvz_disp = movzx_mem_disp(mvz);
+            const std::uint64_t effective64 =
+                static_cast<std::uint64_t>(lea_target) + static_cast<std::uint64_t>(mvz_disp);
+            if (!pe.in_data(effective64))
+            {
+                rva += step;
+                continue;
+            }
+            const auto effective = static_cast<std::uint32_t>(effective64);
+
+            const std::uint32_t after = rva + lea.insn.length + mvz.insn.length;
+            if (!is_bit_test_consumer(dec, pe, after))
+            {
+                rva += step;
+                continue;
+            }
+
+            // It's a bit-test against our table.
+            auto& info = tables[effective];
+            info.callsites.push_back(rva);
+            if (function_has_spear_adjust(dec, pe, fn_begin_rva, fn_end_rva, rva))
+                ++info.spear_callsite_count;
+
+            rva += step;
+        }
+    }
 }
 
 std::optional<mem::fishlog_globals> mem::find_fishlog_globals(const process& proc)
@@ -339,84 +414,69 @@ std::optional<mem::fishlog_globals> mem::find_fishlog_globals(const process& pro
     if (!ZYAN_SUCCESS(ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64)))
         return std::nullopt;
 
-    // target_rva -> first observed callsite RVA (used only as proof we saw it)
-    std::unordered_map<std::uint32_t, std::uint32_t> hits;
-
+    // Aggregate every bit-test callsite across the entire .text section.
+    std::unordered_map<std::uint32_t, table_info> tables;
     for (const auto& fn : read_pdata(pe))
+        scan_function(decoder, pe, fn.begin_rva, fn.end_rva, tables);
+
+    if (tables.size() < 2) return std::nullopt;
+
+    // Sort tables by RVA so we can compute "size = gap to next table".
+    std::vector<std::uint32_t> sorted_rvas;
+    sorted_rvas.reserve(tables.size());
+    for (const auto& [rva, _] : tables) sorted_rvas.push_back(rva);
+    std::ranges::sort(sorted_rvas);
+
+    auto known_size = [&](std::uint32_t rva) -> std::optional<std::uint32_t>
     {
-        scan_function(pe, decoder, fn.begin_rva, fn.end_rva, hits);
-    }
+        const auto it = std::ranges::find(sorted_rvas, rva);
+        if (it == sorted_rvas.end()) return std::nullopt;
+        const auto idx = static_cast<std::size_t>(it - sorted_rvas.begin());
+        if (idx + 1 >= sorted_rvas.size()) return std::nullopt;
+        return sorted_rvas[idx + 1] - rva;
+    };
 
-    if (hits.size() < 2)
-        return std::nullopt;
-
-    std::vector<std::uint32_t> targets;
-    targets.reserve(hits.size());
-    for (const auto& [t, _] : hits) targets.push_back(t);
-    std::ranges::sort(targets);
-
-    // Cluster: consecutive targets within 256 bytes belong to the same group.
-    constexpr std::uint32_t cluster_gap = 256;
-    std::vector<std::vector<std::uint32_t>> clusters;
+    // Spear classification: a table is the spearfishing log iff every observed
+    // callsite applies the -20000 adjustment in the enclosing function.
+    // (Game logic invariant: spearfishing item IDs start at 20000.)
+    std::optional<std::uint32_t> spear_rva;
+    for (const auto& [rva, info] : tables)
     {
-        std::vector<std::uint32_t> cur{targets.front()};
-        for (std::size_t i = 1; i < targets.size(); ++i)
+        if (info.spear_callsite_count > 0 &&
+            info.spear_callsite_count == info.callsites.size())
         {
-            if (targets[i] - cur.back() <= cluster_gap)
-            {
-                cur.push_back(targets[i]);
-            }
-            else
-            {
-                clusters.push_back(std::move(cur));
-                cur = {targets[i]};
-            }
+            // If multiple tables qualify, prefer the one with the most callsites
+            // (the real one will have several xrefs; spurious ones rarely do).
+            if (!spear_rva || tables.at(*spear_rva).callsites.size() < info.callsites.size())
+                spear_rva = rva;
         }
-        clusters.push_back(std::move(cur));
     }
+    if (!spear_rva) return std::nullopt;
 
-    // Score each cluster by the largest inferred table size inside it.
-    // The fishlog table (~190 bytes) dominates every other bit-test table.
-    auto inferred_size = [](const std::vector<std::uint32_t>& c, std::size_t i) -> std::uint32_t
-    {
-        if (i + 1 < c.size()) return c[i + 1] - c[i];
-        return 64; // last entry — bounded but unknown
-    };
-
-    auto cluster_score = [&](const std::vector<std::uint32_t>& c) -> std::uint32_t
-    {
-        if (c.size() < 2) return 0;
-        std::uint32_t best = 0;
-        for (std::size_t i = 0; i + 1 < c.size(); ++i)
-            best = std::max(best, c[i + 1] - c[i]);
-        return best;
-    };
-
-    const auto best_it = std::ranges::max_element(clusters, {}, cluster_score);
-    if (best_it == clusters.end()) return std::nullopt;
-    const auto& cluster = *best_it;
-    if (cluster.size() < 2) return std::nullopt;
-    if (cluster_score(cluster) < 64) return std::nullopt; // sanity: real fishlog is >>64 bytes
-
-    // fishlog = entry with the LARGEST gap-to-next inside the cluster
-    std::size_t fishlog_idx = 0;
+    // Fishlog classification: among tables that are NOT spear, with ≥2 callsites
+    // and a known forward gap ≥64 bytes (filtering stray single-use tables and
+    // unrelated small bitfields), pick the one with the largest known size.
+    // FishParameter currently has 1500+ rows ⇒ ~189 bytes; any future growth
+    // keeps it the largest bitfield in PlayerState by a wide margin.
+    constexpr std::uint32_t MIN_FISHLOG_SIZE = 64;
+    std::optional<std::uint32_t> fishlog_rva;
     std::uint32_t best_size = 0;
-    for (std::size_t i = 0; i + 1 < cluster.size(); ++i)
+    for (const auto& [rva, info] : tables)
     {
-        const auto s = inferred_size(cluster, i);
-        if (s > best_size)
+        if (rva == *spear_rva) continue;
+        if (info.callsites.size() < 2) continue;
+        const auto sz = known_size(rva);
+        if (!sz || *sz < MIN_FISHLOG_SIZE) continue;
+        if (*sz > best_size)
         {
-            best_size = s;
-            fishlog_idx = i;
+            best_size = *sz;
+            fishlog_rva = rva;
         }
     }
-
-    const auto fishlog_rva = cluster[fishlog_idx];
-    const auto spear_rva   = cluster.back();
-    if (fishlog_rva == spear_rva) return std::nullopt;
+    if (!fishlog_rva) return std::nullopt;
 
     return fishlog_globals{
-        proc.base_address() + fishlog_rva,
-        proc.base_address() + spear_rva,
+        proc.base_address() + *fishlog_rva,
+        proc.base_address() + *spear_rva,
     };
 }
