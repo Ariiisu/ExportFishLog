@@ -158,7 +158,7 @@ namespace
                 ++j;
             }
 
-            result.push_back({b, e});
+            result.push_back({.begin_rva = b, .end_rva = e});
             i = j;
         }
         return result;
@@ -424,7 +424,8 @@ std::optional<mem::fishlog_globals> mem::find_fishlog_globals(const process& pro
     // Sort tables by RVA so we can compute "size = gap to next table".
     std::vector<std::uint32_t> sorted_rvas;
     sorted_rvas.reserve(tables.size());
-    for (const auto& [rva, _] : tables) sorted_rvas.push_back(rva);
+    for (const auto& rva : tables | std::views::keys)
+        sorted_rvas.push_back(rva);
     std::ranges::sort(sorted_rvas);
 
     auto known_size = [&](std::uint32_t rva) -> std::optional<std::uint32_t>
@@ -476,7 +477,7 @@ std::optional<mem::fishlog_globals> mem::find_fishlog_globals(const process& pro
     if (!fishlog_rva) return std::nullopt;
 
     return fishlog_globals{
-        proc.base_address() + *fishlog_rva,
-        proc.base_address() + *spear_rva,
+        .fishlog = proc.base_address() + *fishlog_rva,
+        .spear_fishlog = proc.base_address() + *spear_rva,
     };
 }
