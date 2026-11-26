@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <vector>
+#include <span>
 
 #include "pattern.h"
 
@@ -56,6 +57,11 @@ namespace mem
                 return std::nullopt;
 
             return res;
+        }
+
+        bool read_bytes(std::uintptr_t address, std::span<std::uint8_t> buffer) const
+        {
+            return read_impl(address, buffer.data(), buffer.size());
         }
 
         template <typename T>
